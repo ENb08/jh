@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Utilisateurs - SuperMarket Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root{
+            --bg:#f5f7fb;--card:#fff;--muted:#6b7280;--accent:#2563eb;--accent-2:#10b981;--danger:#ef4444;
+            --warning:#f59e0b;--shadow:rgba(15,23,42,0.06);
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+        *{box-sizing:border-box}
+        html,body{height:100%;margin:0;background:var(--bg);color:#0f172a}
+        .app{display:flex;min-height:100vh}
+        /* SIDEBAR */
+        .sidebar{width:260px;padding:20px;background:linear-gradient(180deg,#ffffff,#fbfdff);border-right:1px solid #eef2f7}
+        .brand{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+        .logo{width:44px;height:44px;border-radius:8px;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .menu-item{display:flex;gap:10px;align-items:center;padding:10px;border-radius:8px;text-decoration:none;color:var(--muted);margin-bottom:6px}
+        .menu-item.active{background:rgba(37,99,235,0.08);color:var(--accent);font-weight:600}
+        .sidebar .small{font-size:12px;color:var(--muted);margin-top:auto;padding-top:20px}
+        /* MAIN */
+        .main{flex:1;padding:18px;display:flex;flex-direction:column;gap:14px}
+        .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+        .topbar h1{font-size:1.1rem;margin:0}
+        .controls{display:flex;gap:8px;flex-wrap:wrap}
+        .btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight:600;display:flex;gap:6px;align-items:center;transition:all .2s}
+        .btn:hover{opacity:0.9;transform:translateY(-1px)}
+        .btn.secondary{background:#fff;border:1px solid #e6e9ee;color:var(--muted)}
+        .btn.danger{background:var(--danger)}
+        .btn.success{background:var(--accent-2)}
+        .btn.warning{background:var(--warning)}
+        /* Tabs */
+        .tabs{display:flex;gap:4px;border-bottom:1px solid #eef2f7;margin-bottom:12px}
+        .tab{padding:10px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;font-weight:600}
+        .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+        /* Panel */
+        .panel{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px var(--shadow)}
+        .filters{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+        .input,select,textarea{padding:8px;border-radius:8px;border:1px solid #eef2f7;font-family:inherit}
+        .input{flex:1;min-width:160px}
+        /* Tables */
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        thead th{padding:10px;text-align:left;color:var(--muted);border-bottom:1px solid #eef2f7;font-weight:600}
+        tbody td{padding:10px;border-bottom:1px solid #f7fafc}
+        tbody tr:hover{background:#fbfdff}
+        .badge{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px;color:#fff;font-weight:600}
+        .badge.ok{background:var(--accent-2)}
+        .badge.inactive{background:#9ca3af}
+        .badge.admin{background:var(--danger)}
+        .badge.manager{background:var(--warning)}
+        .badge.seller{background:var(--accent)}
+        .badge.warehouse{background:#8b5cf6}
+        /* Stats */
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px}
+        .stat-card{background:var(--card);padding:12px;border-radius:10px;border-left:6px solid var(--accent)}
+        .stat-card h4{margin:0;font-size:13px;color:var(--muted)}
+        .stat-card .value{font-size:1.4rem;font-weight:700;margin-top:6px}
+        /* Modal */
+        .modal{position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(2,6,23,0.35);z-index:80;display:none}
+        .modal.show{display:flex}
+        .modal-box{background:white;padding:20px;border-radius:12px;min-width:320px;max-width:600px;max-height:90vh;overflow:auto}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+        .modal-close{background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--muted)}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+        .form-row.full{grid-template-columns:1fr}
+        .form-label{font-weight:600;margin-bottom:4px;font-size:13px}
+        .checkbox{display:flex;gap:8px;align-items:center;padding:8px}
+        .checkbox input{width:18px;height:18px;cursor:pointer}
+        .alert{padding:12px;border-radius:8px;margin-bottom:12px;display:flex;gap:8px;align-items:start}
+        .alert.success{background:rgba(16,185,129,0.08);color:#059669}
+        .alert.danger{background:rgba(239,68,68,0.08);color:#dc2626}
+        .small-muted{font-size:13px;color:var(--muted)}
+        .action-icon{cursor:pointer;margin-right:8px;transition:all .2s}
+        .action-icon:hover{color:var(--accent);transform:scale(1.2)}
+        @media (max-width:768px){.sidebar{width:200px} .controls{flex-direction:column} .form-row{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" aria-label="Navigation principale">
+            <div class="brand">
+                <div class="logo">SP</div>
+                <div>
+                    <div style="font-weight:700">SuperMarket Pro</div>
+                    <div style="font-size:12px;color:var(--muted)">Utilisateurs</div>
+                </div>
+            </div>
+
+            <nav>
+                <a href="acceuil.html" class="menu-item"><i class="fas fa-home"></i> Tableau de Bord</a>
+                <a href="pos.html" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
+                <a href="stock.html" class="menu-item"><i class="fas fa-box"></i> Gestion Stock</a>
+                <a href="users.html" class="menu-item active"><i class="fas fa-users"></i> Utilisateurs</a>
+            </nav>
+
+            <div class="small">© <span id="year"></span> SuperMarket Pro</div>
+        </aside>
+
+        <main class="main" role="main">
+            <div class="topbar">
+                <h1><i class="fas fa-users"></i> Gestion des Utilisateurs</h1>
+                <div class="controls">
+                    <button class="btn success" id="btn-add-user"><i class="fas fa-plus"></i> Nouvel utilisateur</button>
+                    <button class="btn secondary" id="btn-export"><i class="fas fa-file-export"></i> Export</button>
+                </div>
+            </div>
+
+            <!-- STATS -->
+            <div class="stats">
+                <div class="stat-card" style="border-left-color:var(--accent)">
+                    <h4>Total Utilisateurs</h4>
+                    <div class="value" id="stat-total">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color:var(--accent-2)">
+                    <h4>Utilisateurs Actifs</h4>
+                    <div class="value" id="stat-active">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color:var(--warning)">
+                    <h4>Administrateurs</h4>
+                    <div class="value" id="stat-admin">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color:#8b5cf6">
+                    <h4>Connectés</h4>
+                    <div class="value" id="stat-online">0</div>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div class="tabs" role="tablist">
+                <button class="tab active" data-tab="users"><i class="fas fa-list"></i> Utilisateurs</button>
+                <button class="tab" data-tab="roles"><i class="fas fa-shield-alt"></i> Rôles & Permissions</button>
+                <button class="tab" data-tab="activity"><i class="fas fa-history"></i> Activité</button>
+            </div>
+
+            <!-- TAB: USERS -->
+            <section id="tab-users" class="panel" role="tabpanel" aria-labelledby="tab-users">
+                <div class="filters">
+                    <input id="search-users" class="input" type="search" placeholder="Rechercher par nom, email, rôle..." />
+                    <select id="filter-role" class="input" style="width:140px">
+                        <option value="">Tous les rôles</option>
+                        <option value="admin">Administrateur</option>
+                        <option value="manager">Gérant</option>
+                        <option value="seller">Caissier</option>
+                        <option value="warehouse">Magasinier</option>
+                    </select>
+                    <select id="filter-status" class="input" style="width:140px">
+                        <option value="">Tous les statuts</option>
+                        <option value="active">Actif</option>
+                        <option value="inactive">Inactif</option>
+                        <option value="locked">Bloqué</option>
+                    </select>
+                </div>
+
+                <table aria-label="Liste des utilisateurs">
+                    <thead>
+                        <tr>
+                            <th>Nom Complet</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Statut</th>
+                            <th style="text-align:center">En ligne</th>
+                            <th>Création</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: ROLES -->
+            <section id="tab-roles" class="panel" role="tabpanel" aria-labelledby="tab-roles" style="display:none">
+                <div style="margin-bottom:12px">
+                    <button class="btn" id="btn-add-role"><i class="fas fa-plus"></i> Nouveau Rôle</button>
+                </div>
+
+                <table aria-label="Rôles et permissions">
+                    <thead>
+                        <tr>
+                            <th>Rôle</th>
+                            <th>Description</th>
+                            <th>Utilisateurs</th>
+                            <th>Permissions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rolesTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: ACTIVITY -->
+            <section id="tab-activity" class="panel" role="tabpanel" aria-labelledby="tab-activity" style="display:none">
+                <div class="filters">
+                    <input id="activity-search" class="input" type="search" placeholder="Rechercher..." />
+                    <input id="activity-date-from" type="date" class="input" />
+                    <input id="activity-date-to" type="date" class="input" />
+                    <select id="activity-type" class="input" style="width:140px">
+                        <option value="">Tous les types</option>
+                        <option value="login">Connexion</option>
+                        <option value="logout">Déconnexion</option>
+                        <option value="create">Création</option>
+                        <option value="edit">Modification</option>
+                        <option value="delete">Suppression</option>
+                        <option value="permission">Permission</option>
+                    </select>
+                </div>
+
+                <table aria-label="Historique d'activité">
+                    <thead>
+                        <tr>
+                            <th>Date/Heure</th>
+                            <th>Utilisateur</th>
+                            <th>Type</th>
+                            <th>Détails</th>
+                            <th>Adresse IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTable"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: Ajouter/Modifier Utilisateur -->
+    <div class="modal" id="modalUser">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modalUserTitle">Ajouter un utilisateur</h3>
+                <button class="modal-close" data-close="modalUser">&times;</button>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Nom Complet *</div>
+                    <input id="u-fullname" class="input" placeholder="Prénom Nom" />
+                </div>
+                <div>
+                    <div class="form-label">Email *</div>
+                    <input id="u-email" class="input" type="email" placeholder="email@example.com" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Nom d'utilisateur *</div>
+                    <input id="u-username" class="input" placeholder="username" />
+                </div>
+                <div>
+                    <div class="form-label">Mot de passe *</div>
+                    <input id="u-password" class="input" type="password" placeholder="••••••••" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Rôle *</div>
+                    <select id="u-role" class="input">
+                        <option value="">-- Sélectionner --</option>
+                        <option value="admin">Administrateur</option>
+                        <option value="manager">Gérant</option>
+                        <option value="seller">Caissier</option>
+                        <option value="warehouse">Magasinier</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="form-label">Numéro de Tél</div>
+                    <input id="u-phone" class="input" placeholder="+33 6 12 34 56 78" />
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Permissions supplémentaires</div>
+                <div style="border:1px solid #eef2f7;border-radius:8px;padding:10px">
+                    <label class="checkbox">
+                        <input type="checkbox" value="manage_users" /> Gérer les utilisateurs
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="manage_roles" /> Gérer les rôles
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="view_reports" /> Voir les rapports
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="manage_inventory" /> Gérer l'inventaire
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="view_audit" /> Voir l'audit
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="export_data" /> Exporter données
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <label class="checkbox">
+                    <input id="u-active" type="checkbox" checked /> Actif
+                </label>
+                <label class="checkbox">
+                    <input id="u-must-change-pwd" type="checkbox" /> Forcer changement mot de passe à la prochaine connexion
+                </label>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn success" id="u-save">Enregistrer</button>
+                <button class="btn secondary" data-close="modalUser">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Ajouter Rôle -->
+    <div class="modal" id="modalRole">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Nouveau Rôle</h3>
+                <button class="modal-close" data-close="modalRole">&times;</button>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Nom du rôle *</div>
+                <input id="r-name" class="input" placeholder="Ex: Superviseur" />
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Description</div>
+                <textarea id="r-description" class="input" placeholder="Description du rôle" style="min-height:60px"></textarea>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Permissions *</div>
+                <div style="border:1px solid #eef2f7;border-radius:8px;padding:10px;max-height:200px;overflow:auto">
+                    <label class="checkbox">
+                        <input type="checkbox" value="view_dashboard" /> Voir le tableau de bord
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="view_sales" /> Voir les ventes
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="create_sale" /> Créer une vente
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="view_inventory" /> Voir l'inventaire
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="manage_inventory" /> Gérer l'inventaire
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="manage_users" /> Gérer les utilisateurs
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="manage_roles" /> Gérer les rôles
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="view_reports" /> Voir les rapports
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" value="view_audit" /> Voir l'audit
+                    </label>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn success" id="r-save">Créer Rôle</button>
+                <button class="btn secondary" data-close="modalRole">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/users.js"></script>
+</body>
+</html>

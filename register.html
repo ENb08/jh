@@ -1,0 +1,246 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="fr">
+
+
+
+
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - SuperMarket Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .register-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+        }
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo-section h1 {
+            font-size: 24px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .btn-register {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .error-message, .success-message {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error-message {
+            background: #fee;
+            color: #c33;
+        }
+        .success-message {
+            background: #efe;
+            color: #3c3;
+        }
+        .form-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .form-footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #999;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo-section">
+            <h1>SuperMarket Pro</h1>
+            <p style="color: #999; font-size: 12px;">Créer un nouveau compte</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="magasin">Nouveau Magasin</button>
+            <button class="tab-btn" data-tab="utilisateur">Nouvel Utilisateur</button>
+        </div>
+
+        <!-- Créer Magasin -->
+        <div id="magasin" class="tab-content active">
+            <div id="errorMagasin" class="error-message"></div>
+            <div id="successMagasin" class="success-message"></div>
+            
+            <form id="formMagasin">
+                <div class="form-group">
+                    <label for="nomMagasin">Nom du Magasin</label>
+                    <input type="text" id="nomMagasin" name="nomMagasin" required placeholder="Ex: SuperMarket Centre-Ville">
+                </div>
+
+                <div class="form-group">
+                    <label for="adresseMagasin">Adresse</label>
+                    <input type="text" id="adresseMagasin" name="adresseMagasin" required placeholder="Rue, Ville">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="telephoneMagasin">Téléphone</label>
+                        <input type="tel" id="telephoneMagasin" name="telephoneMagasin" required placeholder="+33 1 23 45 67 89">
+                    </div>
+                    <div class="form-group">
+                        <label for="emailMagasin">Email</label>
+                        <input type="email" id="emailMagasin" name="emailMagasin" required placeholder="contact@magasin.fr">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="nomProprio">Nom du Propriétaire</label>
+                    <input type="text" id="nomProprio" name="nomProprio" required placeholder="Votre nom complet">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="usernameMagasin">Identifiant Admin</label>
+                        <input type="text" id="usernameMagasin" name="usernameMagasin" required placeholder="admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="passwordMagasin">Mot de passe</label>
+                        <input type="password" id="passwordMagasin" name="passwordMagasin" required placeholder="••••••••">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-register">Créer le Magasin</button>
+            </form>
+        </div>
+
+        <!-- Créer Utilisateur -->
+        <div id="utilisateur" class="tab-content">
+            <div id="errorUtilisateur" class="error-message"></div>
+            <div id="successUtilisateur" class="success-message"></div>
+            
+            <form id="formUtilisateur">
+                <div class="form-group">
+                    <label for="magasinSelect">Magasin</label>
+                    <select id="magasinSelect" name="magasinSelect" required>
+                        <option value="">-- Sélectionner --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="nomUtilisateur">Nom d'utilisateur</label>
+                    <input type="text" id="nomUtilisateur" name="nomUtilisateur" required placeholder="jean.dupont">
+                </div>
+
+                <div class="form-group">
+                    <label for="passwordUtilisateur">Mot de passe</label>
+                    <input type="password" id="passwordUtilisateur" name="passwordUtilisateur" required placeholder="••••••••">
+                </div>
+
+                <div class="form-group">
+                    <label for="telephoneUtilisateur">Téléphone</label>
+                    <input type="tel" id="telephoneUtilisateur" name="telephoneUtilisateur" required placeholder="+33">
+                </div>
+
+                <div class="form-group">
+                    <label for="roleUtilisateur">Rôle</label>
+                    <select id="roleUtilisateur" name="roleUtilisateur" required>
+                        <option value="caisse">Caissier</option>
+                        <option value="depot">Dépôt</option>
+                        <option value="admin">Administrateur</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-register">Créer l'Utilisateur</button>
+            </form>
+        </div>
+
+        <div class="form-footer">
+            Déjà inscrit ? <a href="login.html">Se connecter</a>
+        </div>
+    </div>
+
+    <script src="assets/js/register.js"></script>
+</body>
+</html>

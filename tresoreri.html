@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trésorerie - SuperMarket Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root{
+            --bg:#f5f7fb;--card:#fff;--muted:#6b7280;--accent:#2563eb;--accent-2:#10b981;--danger:#ef4444;
+            --warning:#f59e0b;--shadow:rgba(15,23,42,0.06);
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+        *{box-sizing:border-box}
+        html,body{height:100%;margin:0;background:var(--bg);color:#0f172a}
+        .app{display:flex;min-height:100vh}
+        /* SIDEBAR */
+        .sidebar{width:260px;padding:20px;background:linear-gradient(180deg,#ffffff,#fbfdff);border-right:1px solid #eef2f7}
+        .brand{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+        .logo{width:44px;height:44px;border-radius:8px;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .menu-item{display:flex;gap:10px;align-items:center;padding:10px;border-radius:8px;text-decoration:none;color:var(--muted);margin-bottom:6px}
+        .menu-item.active{background:rgba(37,99,235,0.08);color:var(--accent);font-weight:600}
+        .sidebar .small{font-size:12px;color:var(--muted);margin-top:auto;padding-top:20px}
+        /* MAIN */
+        .main{flex:1;padding:18px;display:flex;flex-direction:column;gap:14px}
+        .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+        .topbar h1{font-size:1.1rem;margin:0}
+        .controls{display:flex;gap:8px;flex-wrap:wrap}
+        .btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight:600;display:flex;gap:6px;align-items:center;transition:all .2s}
+        .btn:hover{opacity:0.9;transform:translateY(-1px)}
+        .btn.secondary{background:#fff;border:1px solid #e6e9ee;color:var(--muted)}
+        .btn.danger{background:var(--danger)}
+        .btn.success{background:var(--accent-2)}
+        .btn.warning{background:var(--warning)}
+        /* Tabs */
+        .tabs{display:flex;gap:4px;border-bottom:1px solid #eef2f7;margin-bottom:12px;flex-wrap:wrap}
+        .tab{padding:10px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;font-weight:600;display:flex;gap:6px;align-items:center}
+        .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+        /* Panel */
+        .panel{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px var(--shadow)}
+        .filters{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+        .input,select,textarea{padding:8px;border-radius:8px;border:1px solid #eef2f7;font-family:inherit}
+        .input{flex:1;min-width:160px}
+        /* Tables */
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        thead th{padding:10px;text-align:left;color:var(--muted);border-bottom:1px solid #eef2f7;font-weight:600}
+        tbody td{padding:10px;border-bottom:1px solid #f7fafc}
+        tbody tr:hover{background:#fbfdff}
+        .badge{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px;color:#fff;font-weight:600}
+        .badge.ok{background:var(--accent-2)}
+        .badge.pending{background:var(--warning)}
+        .badge.overdue{background:var(--danger)}
+        /* Stats */
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:14px}
+        .stat-card{background:var(--card);padding:14px;border-radius:10px;border-left:6px solid var(--accent)}
+        .stat-card h4{margin:0;font-size:13px;color:var(--muted)}
+        .stat-card .value{font-size:1.6rem;font-weight:700;margin-top:8px}
+        .stat-card.danger{border-left-color:var(--danger)}
+        .stat-card.success{border-left-color:var(--accent-2)}
+        .stat-card.warning{border-left-color:var(--warning)}
+        /* Forms */
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+        .form-row.full{grid-template-columns:1fr}
+        .form-label{font-weight:600;margin-bottom:4px;font-size:13px}
+        .form-group{margin-bottom:12px}
+        /* Charts */
+        .chart-container{position:relative;height:300px;margin:20px 0}
+        /* Modal */
+        .modal{position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(2,6,23,0.35);z-index:80;display:none}
+        .modal.show{display:flex}
+        .modal-box{background:white;padding:20px;border-radius:12px;min-width:400px;max-width:600px;max-height:90vh;overflow:auto}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+        .modal-close{background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--muted)}
+        .alert{padding:12px;border-radius:8px;margin-bottom:12px;display:flex;gap:8px;align-items:start}
+        .alert.success{background:rgba(16,185,129,0.08);color:#059669}
+        .alert.danger{background:rgba(239,68,68,0.08);color:#dc2626}
+        .alert.warning{background:rgba(245,158,11,0.08);color:#d97706}
+        .small-muted{font-size:13px;color:var(--muted)}
+        @media (max-width:768px){.sidebar{width:200px} .form-row{grid-template-columns:1fr} .stats{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" aria-label="Navigation principale">
+            <div class="brand">
+                <div class="logo">SP</div>
+                <div>
+                    <div style="font-weight:700">SuperMarket Pro</div>
+                    <div style="font-size:12px;color:var(--muted)">Trésorerie</div>
+                </div>
+            </div>
+
+            <nav>
+                <a href="acceuil.html" class="menu-item"><i class="fas fa-home"></i> Tableau de Bord</a>
+                <a href="pos.html" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
+                <a href="stock.html" class="menu-item"><i class="fas fa-box"></i> Gestion Stock</a>
+                <a href="tresoreri.html" class="menu-item active"><i class="fas fa-wallet"></i> Trésorerie</a>
+                <a href="users.html" class="menu-item"><i class="fas fa-users"></i> Utilisateurs</a>
+            </nav>
+
+            <div class="small">© <span id="year"></span> SuperMarket Pro</div>
+        </aside>
+
+        <main class="main" role="main">
+            <div class="topbar">
+                <h1><i class="fas fa-wallet"></i> Gestion de la Trésorerie</h1>
+                <div class="controls">
+                    <button class="btn" id="btn-add-purchase"><i class="fas fa-plus"></i> Achat</button>
+                    <button class="btn" id="btn-add-expense"><i class="fas fa-plus"></i> Dépense</button>
+                    <button class="btn secondary" id="btn-export"><i class="fas fa-file-export"></i> Export</button>
+                </div>
+            </div>
+
+            <!-- STATS -->
+            <div class="stats">
+                <div class="stat-card success">
+                    <h4>Revenus Totaux</h4>
+                    <div class="value" id="stat-revenue">0 €</div>
+                    <div class="small-muted">Ce mois</div>
+                </div>
+                <div class="stat-card danger">
+                    <h4>Dépenses Totales</h4>
+                    <div class="value" id="stat-expenses">0 €</div>
+                    <div class="small-muted">Ce mois</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Bénéfice Net</h4>
+                    <div class="value" id="stat-profit">0 €</div>
+                    <div class="small-muted">Ce mois</div>
+                </div>
+                <div class="stat-card warning">
+                    <h4>Factures En Attente</h4>
+                    <div class="value" id="stat-pending">0</div>
+                    <div class="small-muted">À payer</div>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div class="tabs" role="tablist">
+                <button class="tab active" data-tab="dashboard"><i class="fas fa-chart-line"></i> Tableau de Bord</button>
+                <button class="tab" data-tab="purchases"><i class="fas fa-shopping-cart"></i> Achats</button>
+                <button class="tab" data-tab="expenses"><i class="fas fa-money-bill"></i> Dépenses</button>
+                <button class="tab" data-tab="invoices"><i class="fas fa-file-invoice"></i> Factures</button>
+                <button class="tab" data-tab="reports"><i class="fas fa-chart-bar"></i> Rapports</button>
+            </div>
+
+            <!-- TAB: DASHBOARD -->
+            <section id="tab-dashboard" class="panel" role="tabpanel" aria-labelledby="tab-dashboard">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div>
+                        <h3>Revenu vs Dépenses</h3>
+                        <div class="chart-container">
+                            <canvas id="chartRevenue"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Catégories de Dépenses</h3>
+                        <div class="chart-container">
+                            <canvas id="chartExpenses"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top:20px">Flux de Trésorerie (30 jours)</h3>
+                <div class="chart-container">
+                    <canvas id="chartCashFlow"></canvas>
+                </div>
+
+                <h3 style="margin-top:20px">Transactions Récentes</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTransactionsTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: PURCHASES -->
+            <section id="tab-purchases" class="panel" role="tabpanel" aria-labelledby="tab-purchases" style="display:none">
+                <h3>Enregistrer un Achat</h3>
+                
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Fournisseur *</div>
+                        <select id="p-supplier" class="input">
+                            <option value="">-- Sélectionner --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="form-label">Catégorie *</div>
+                        <select id="p-category" class="input">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="alimentaire">Alimentaire</option>
+                            <option value="hygiene">Hygiène & Nettoyage</option>
+                            <option value="boisson">Boissons</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Numéro Facture</div>
+                        <input id="p-invoice-no" class="input" placeholder="INV-2024-001" />
+                    </div>
+                    <div>
+                        <div class="form-label">Date d'Achat *</div>
+                        <input id="p-date" class="input" type="date" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Montant HT *</div>
+                        <input id="p-amount-ht" class="input" type="number" min="0" step="0.01" />
+                    </div>
+                    <div>
+                        <div class="form-label">TVA (%)</div>
+                        <input id="p-vat" class="input" type="number" value="20" min="0" step="0.01" />
+                    </div>
+                </div>
+
+                <div class="form-row full">
+                    <div>
+                        <div class="form-label">Montant TTC (calculé)</div>
+                        <input id="p-amount-ttc" class="input" readonly style="background:#f7fafc" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Statut Paiement</div>
+                        <select id="p-payment-status" class="input">
+                            <option value="pending">En attente</option>
+                            <option value="paid">Payé</option>
+                            <option value="partially">Partiellement payé</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="form-label">Conditions Paiement</div>
+                        <select id="p-terms" class="input">
+                            <option value="immediate">Immédiat</option>
+                            <option value="net30">Net 30</option>
+                            <option value="net60">Net 60</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row full">
+                    <div class="form-label">Notes</div>
+                    <textarea id="p-notes" class="input" style="min-height:80px" placeholder="Notes supplémentaires..."></textarea>
+                </div>
+
+                <button class="btn success" id="p-save"><i class="fas fa-save"></i> Enregistrer l'Achat</button>
+
+                <hr style="margin:30px 0">
+
+                <h3>Historique des Achats</h3>
+                <div class="filters">
+                    <input id="search-purchases" class="input" type="search" placeholder="Rechercher..." />
+                    <select id="filter-supplier" class="input" style="width:140px">
+                        <option value="">Tous les fournisseurs</option>
+                    </select>
+                    <select id="filter-purchase-status" class="input" style="width:140px">
+                        <option value="">Tous les statuts</option>
+                        <option value="pending">En attente</option>
+                        <option value="paid">Payé</option>
+                    </select>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Fournisseur</th>
+                            <th>Catégorie</th>
+                            <th>Facture</th>
+                            <th>Montant HT</th>
+                            <th>TVA</th>
+                            <th>Montant TTC</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchasesTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: EXPENSES -->
+            <section id="tab-expenses" class="panel" role="tabpanel" aria-labelledby="tab-expenses" style="display:none">
+                <h3>Enregistrer une Dépense</h3>
+
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Catégorie *</div>
+                        <select id="e-category" class="input">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="loyer">Loyer</option>
+                            <option value="salaires">Salaires</option>
+                            <option value="utilities">Électricité/Eau</option>
+                            <option value="internet">Internet/Téléphone</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="assurance">Assurance</option>
+                            <option value="fournitures">Fournitures Bureau</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="form-label">Date *</div>
+                        <input id="e-date" class="input" type="date" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Montant *</div>
+                        <input id="e-amount" class="input" type="number" min="0" step="0.01" />
+                    </div>
+                    <div>
+                        <div class="form-label">Mode de Paiement</div>
+                        <select id="e-payment-method" class="input">
+                            <option value="cash">Espèces</option>
+                            <option value="bank">Virement Bancaire</option>
+                            <option value="check">Chèque</option>
+                            <option value="card">Carte Bancaire</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row full">
+                    <div class="form-label">Description</div>
+                    <textarea id="e-description" class="input" style="min-height:80px" placeholder="Description de la dépense..."></textarea>
+                </div>
+
+                <button class="btn success" id="e-save"><i class="fas fa-save"></i> Enregistrer la Dépense</button>
+
+                <hr style="margin:30px 0">
+
+                <h3>Dépenses du Mois</h3>
+                <div class="filters">
+                    <input id="search-expenses" class="input" type="search" placeholder="Rechercher..." />
+                    <select id="filter-expense-category" class="input" style="width:140px">
+                        <option value="">Toutes les catégories</option>
+                        <option value="loyer">Loyer</option>
+                        <option value="salaires">Salaires</option>
+                        <option value="utilities">Utilities</option>
+                    </select>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Catégorie</th>
+                            <th>Description</th>
+                            <th>Montant</th>
+                            <th>Mode Paiement</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: INVOICES -->
+            <section id="tab-invoices" class="panel" role="tabpanel" aria-labelledby="tab-invoices" style="display:none">
+                <h3>Factures à Payer</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Fournisseur</th>
+                            <th>Facture #</th>
+                            <th>Montant</th>
+                            <th>Échéance</th>
+                            <th>Statut</th>
+                            <th>Retard</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoicesTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: REPORTS -->
+            <section id="tab-reports" class="panel" role="tabpanel" aria-labelledby="tab-reports" style="display:none">
+                <div class="filters">
+                    <input id="report-date-from" type="date" class="input" />
+                    <input id="report-date-to" type="date" class="input" />
+                    <button class="btn" id="btn-generate-report"><i class="fas fa-file-pdf"></i> Générer Rapport</button>
+                </div>
+
+                <h3 style="margin-top:20px">Résumé Financier</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h4>Revenus</h4>
+                        <div class="value" id="report-revenue">0 €</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Achats</h4>
+                        <div class="value" id="report-purchases">0 €</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Dépenses</h4>
+                        <div class="value" id="report-expenses">0 €</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Résultat</h4>
+                        <div class="value" id="report-result">0 €</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top:20px">Détail par Catégorie</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Montant</th>
+                            <th>% du Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTable"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: Ajouter Achat -->
+    <div class="modal" id="modalPurchase">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Ajouter un Achat</h3>
+                <button class="modal-close" data-close="modalPurchase">&times;</button>
+            </div>
+            <div style="padding:14px">
+                <p>Veuillez remplir le formulaire dans l'onglet "Achats"</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Ajouter Dépense -->
+    <div class="modal" id="modalExpense">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Ajouter une Dépense</h3>
+                <button class="modal-close" data-close="modalExpense">&times;</button>
+            </div>
+            <div style="padding:14px">
+                <p>Veuillez remplir le formulaire dans l'onglet "Dépenses"</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/script_treasury.js"></script>
+</body>
+</html>

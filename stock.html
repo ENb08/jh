@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Gestion Stock & Dépôts — SuperMarket Pro</title>
+    <meta name="description" content="Gestion complète du stock, dépôts, mouvements et alertes - SuperMarket Pro">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root{
+            --bg:#f5f7fb;--card:#fff;--muted:#6b7280;--accent:#2563eb;--accent-2:#10b981;--danger:#ef4444;
+            --warning:#f59e0b;--shadow:rgba(15,23,42,0.06);
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+        *{box-sizing:border-box}
+        html,body{height:100%;margin:0;background:var(--bg);color:#0f172a}
+        .app{display:flex;min-height:100vh}
+        /* SIDEBAR */
+        .sidebar{width:260px;padding:20px;background:linear-gradient(180deg,#ffffff,#fbfdff);border-right:1px solid #eef2f7}
+        .brand{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+        .logo{width:44px;height:44px;border-radius:8px;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .menu-item{display:flex;gap:10px;align-items:center;padding:10px;border-radius:8px;text-decoration:none;color:var(--muted);margin-bottom:6px}
+        .menu-item.active{background:rgba(37,99,235,0.08);color:var(--accent);font-weight:600}
+        .sidebar .small{font-size:12px;color:var(--muted);margin-top:auto}
+        /* MAIN */
+        .main{flex:1;padding:18px;display:flex;flex-direction:column;gap:14px}
+        .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+        .topbar h1{font-size:1.1rem;margin:0}
+        .controls{display:flex;gap:8px;flex-wrap:wrap}
+        .btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight:600;display:flex;gap:6px;align-items:center}
+        .btn.secondary{background:#fff;border:1px solid #e6e9ee;color:var(--muted)}
+        .btn.danger{background:var(--danger)}
+        .btn.success{background:var(--accent-2)}
+        .btn.warning{background:var(--warning)}
+        .btn:hover{opacity:0.9}
+        /* Tabs */
+        .tabs{display:flex;gap:4px;border-bottom:1px solid #eef2f7;margin-bottom:12px}
+        .tab{padding:10px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
+        .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+        /* Panels */
+        .panel{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px var(--shadow)}
+        .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+        .filters{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+        .input,select,textarea{padding:8px;border-radius:8px;border:1px solid #eef2f7;font-family:inherit}
+        .input{flex:1;min-width:160px}
+        /* Tables */
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        thead th{padding:10px;text-align:left;color:var(--muted);border-bottom:1px solid #eef2f7;font-weight:600}
+        tbody td{padding:10px;border-bottom:1px solid #f7fafc}
+        tbody tr:hover{background:#fbfdff}
+        .badge{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px;color:#fff;font-weight:600}
+        .badge.ok{background:var(--accent-2)}
+        .badge.low{background:var(--warning)}
+        .badge.critical{background:var(--danger)}
+        .badge.info{background:var(--accent)}
+        /* Stats */
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+        .stat-card{background:var(--card);padding:12px;border-radius:10px;border-left:6px solid var(--accent)}
+        .stat-card h4{margin:0;font-size:13px;color:var(--muted)}
+        .stat-card .value{font-size:1.4rem;font-weight:700;margin-top:6px}
+        /* Modal */
+        .modal{position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(2,6,23,0.35);z-index:80;display:none}
+        .modal.show{display:flex}
+        .modal-box{background:white;padding:20px;border-radius:12px;min-width:320px;max-width:640px;max-height:90vh;overflow:auto}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+        .modal-close{background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--muted)}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+        .form-row.full{grid-template-columns:1fr}
+        .form-label{font-weight:600;margin-bottom:4px;font-size:13px}
+        .alert{padding:12px;border-radius:8px;margin-bottom:12px;display:flex;gap:8px;align-items:start}
+        .alert.warning{background:rgba(245,158,11,0.08);color:#d97706}
+        .alert.danger{background:rgba(239,68,68,0.08);color:#dc2626}
+        .alert.success{background:rgba(16,185,129,0.08);color:#059669}
+        .small-muted{font-size:13px;color:var(--muted)}
+        /* responsive */
+        @media (max-width:920px){ .sidebar{width:200px} }
+        @media (max-width:768px){ .app{flex-direction:column} .sidebar{width:100%;padding:10px;display:flex;justify-content:space-between} .controls{flex-direction:column} .form-row{grid-template-columns:1fr} }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" aria-label="Navigation principale">
+            <div class="brand">
+                <div class="logo">SP</div>
+                <div>
+                    <div style="font-weight:700">SuperMarket Pro</div>
+                    <div style="font-size:12px;color:var(--muted)">Stock & Dépôts</div>
+                </div>
+            </div>
+
+            <nav>
+                <a href="acceuil.html" class="menu-item"><i class="fas fa-home"></i> Tableau de Bord</a>
+                <a href="pos.html" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
+                <a href="stock.html" class="menu-item active"><i class="fas fa-box"></i> Gestion Stock</a>
+            </nav>
+
+            <div class="small">© <span id="year"></span> SuperMarket Pro</div>
+        </aside>
+
+        <main class="main" role="main">
+            <div class="topbar">
+                <h1><i class="fas fa-warehouse"></i> Gestion du Stock & Dépôts</h1>
+                <div class="controls">
+                    <button class="btn success" id="btn-new-product"><i class="fas fa-plus"></i> Nouveau produit</button>
+                    <button class="btn" id="btn-add-stock"><i class="fas fa-arrow-up"></i> Entrée stock</button>
+                    <button class="btn warning" id="btn-inventory"><i class="fas fa-sync"></i> Inventaire</button>
+                    <button class="btn secondary" id="btn-export"><i class="fas fa-file-export"></i> Export</button>
+                </div>
+            </div>
+
+            <!-- STATS -->
+            <div class="stats">
+                <div class="stat-card" style="border-left-color:var(--accent)">
+                    <h4>Total Produits</h4>
+                    <div class="value" id="stat-total">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color:var(--accent-2)">
+                    <h4>Valeur Stock</h4>
+                    <div class="value" id="stat-value">0.00 €</div>
+                </div>
+                <div class="stat-card" style="border-left-color:var(--warning)">
+                    <h4>Stock Bas</h4>
+                    <div class="value" id="stat-low">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color:var(--danger)">
+                    <h4>Ruptures</h4>
+                    <div class="value" id="stat-critical">0</div>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div class="tabs" role="tablist">
+                <button class="tab active" data-tab="products"><i class="fas fa-list"></i> Catalogue</button>
+                <button class="tab" data-tab="movements"><i class="fas fa-arrows-alt"></i> Mouvements</button>
+                <button class="tab" data-tab="depots"><i class="fas fa-map-marker-alt"></i> Dépôts</button>
+                <button class="tab" data-tab="alerts"><i class="fas fa-bell"></i> Alertes</button>
+                <button class="tab" data-tab="history"><i class="fas fa-history"></i> Historique</button>
+            </div>
+
+            <!-- TAB: PRODUCTS -->
+            <section id="tab-products" class="panel" role="tabpanel" aria-labelledby="tab-products">
+                <div class="filters">
+                    <input id="search" class="input" type="search" placeholder="Rechercher produit, ref, catégorie..." />
+                    <select id="filter-state" class="input" style="width:140px">
+                        <option value="">Tous les États</option>
+                        <option value="ok">En stock</option>
+                        <option value="low">Stock Bas</option>
+                        <option value="critical">Rupture</option>
+                    </select>
+                    <select id="filter-depot" class="input" style="width:140px">
+                        <option value="">Tous les Dépôts</option>
+                        <option value="principal">Principal</option>
+                        <option value="reserve">Réserve</option>
+                        <option value="vitrine">Vitrine</option>
+                    </select>
+                </div>
+
+                <table aria-label="Catalogue produits">
+                    <thead>
+                        <tr>
+                            <th>Réf / Code</th>
+                            <th>Désignation</th>
+                            <th>Catégorie</th>
+                            <th>Prix A.</th>
+                            <th>Prix V.</th>
+                            <th style="text-align:center">Dépôt Prin.</th>
+                            <th style="text-align:center">Réserve</th>
+                            <th style="text-align:center">Vitrine</th>
+                            <th>État</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: MOVEMENTS -->
+            <section id="tab-movements" class="panel" role="tabpanel" aria-labelledby="tab-movements" style="display:none">
+                <div class="panel-head">
+                    <h3>Mouvements de Stock</h3>
+                    <button class="btn" id="btn-new-movement"><i class="fas fa-plus"></i> Nouveau</button>
+                </div>
+
+                <table aria-label="Mouvements de stock">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Produit</th>
+                            <th>Quantité</th>
+                            <th>De / Vers</th>
+                            <th>Ref Mouvement</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movementsTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: DEPOTS -->
+            <section id="tab-depots" class="panel" role="tabpanel" aria-labelledby="tab-depots" style="display:none">
+                <div class="panel-head">
+                    <h3>Gestion des Dépôts</h3>
+                    <button class="btn" id="btn-new-depot"><i class="fas fa-plus"></i> Nouveau dépôt</button>
+                </div>
+
+                <table aria-label="Liste des dépôts">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Localisation</th>
+                            <th>Type</th>
+                            <th>Capacité</th>
+                            <th>Articles</th>
+                            <th>Valeur</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="depotsTable"></tbody>
+                </table>
+            </section>
+
+            <!-- TAB: ALERTS -->
+            <section id="tab-alerts" class="panel" role="tabpanel" aria-labelledby="tab-alerts" style="display:none">
+                <h3>Alertes & Notifications</h3>
+
+                <div id="alertsList" style="display:flex;flex-direction:column;gap:10px"></div>
+            </section>
+
+            <!-- TAB: HISTORY -->
+            <section id="tab-history" class="panel" role="tabpanel" aria-labelledby="tab-history" style="display:none">
+                <div class="filters">
+                    <input id="history-search" class="input" type="search" placeholder="Rechercher..." />
+                    <input id="history-date-from" type="date" class="input" />
+                    <input id="history-date-to" type="date" class="input" />
+                    <button class="btn secondary" id="btn-filter-history">Filtrer</button>
+                </div>
+
+                <table aria-label="Historique complet">
+                    <thead>
+                        <tr>
+                            <th>Date/Heure</th>
+                            <th>Type</th>
+                            <th>Détails</th>
+                            <th>Utilisateur</th>
+                            <th>Remarques</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Modal: Nouveau Produit -->
+    <div class="modal" id="modalNewProduct">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Ajouter un Produit</h3>
+                <button class="modal-close" data-close="modalNewProduct">&times;</button>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Réf / Code-barre</div>
+                <input id="np-code" class="input" placeholder="Code-barre ou référence unique" />
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Désignation</div>
+                    <input id="np-name" class="input" placeholder="Nom produit" />
+                </div>
+                <div>
+                    <div class="form-label">Catégorie</div>
+                    <select id="np-category" class="input">
+                        <option value="">-- Sélectionner --</option>
+                        <option value="Alimentaire">Alimentaire</option>
+                        <option value="Boisson">Boisson</option>
+                        <option value="Hygiène">Hygiène</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Prix Achat</div>
+                    <input id="np-buy" class="input" type="number" placeholder="0.00" step="0.01" />
+                </div>
+                <div>
+                    <div class="form-label">Prix Vente</div>
+                    <input id="np-sale" class="input" type="number" placeholder="0.00" step="0.01" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Seuil Alerte</div>
+                    <input id="np-alert" class="input" type="number" placeholder="Quantité mini" step="1" />
+                </div>
+                <div>
+                    <div class="form-label">Stock Initial</div>
+                    <input id="np-initial" class="input" type="number" placeholder="0" step="1" />
+                </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn" id="np-save">Enregistrer</button>
+                <button class="btn secondary" data-close="modalNewProduct">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Entrée Stock -->
+    <div class="modal" id="modalAddStock">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Entrée de Stock</h3>
+                <button class="modal-close" data-close="modalAddStock">&times;</button>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Produit</div>
+                <select id="as-product" class="input"></select>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Dépôt destination</div>
+                    <select id="as-depot" class="input">
+                        <option value="principal">Principal</option>
+                        <option value="reserve">Réserve</option>
+                        <option value="vitrine">Vitrine</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="form-label">Quantité</div>
+                    <input id="as-qty" class="input" type="number" placeholder="0" step="1" />
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Numéro Bon</div>
+                <input id="as-ref" class="input" placeholder="Ref. bon de commande / facture" />
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Notes</div>
+                <textarea id="as-notes" class="input" placeholder="Remarques..." style="min-height:60px"></textarea>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn success" id="as-save">Enregistrer Entrée</button>
+                <button class="btn secondary" data-close="modalAddStock">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nouveau Dépôt -->
+    <div class="modal" id="modalNewDepot">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Nouveau Dépôt</h3>
+                <button class="modal-close" data-close="modalNewDepot">&times;</button>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Nom</div>
+                    <input id="nd-name" class="input" placeholder="Ex: Réserve" />
+                </div>
+                <div>
+                    <div class="form-label">Type</div>
+                    <select id="nd-type" class="input">
+                        <option value="principal">Principal</option>
+                        <option value="reserve">Réserve</option>
+                        <option value="vitrine">Vitrine</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-label">Localisation</div>
+                <input id="nd-location" class="input" placeholder="Adresse / Zone" />
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <div class="form-label">Capacité (m³)</div>
+                    <input id="nd-capacity" class="input" type="number" placeholder="0" step="0.1" />
+                </div>
+                <div>
+                    <div class="form-label">Responsable</div>
+                    <input id="nd-manager" class="input" placeholder="Nom" />
+                </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn" id="nd-save">Créer Dépôt</button>
+                <button class="btn secondary" data-close="modalNewDepot">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/script_stock.js"></script>
+   
+    </script>
+</body>
+</html>

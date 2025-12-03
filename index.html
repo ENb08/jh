@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion — SuperMarket Pro</title>
+    <meta name="description" content="Connexion à SuperMarket Pro — interface sécurisée pour accéder à votre tableau de bord.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style_index.css">
+    <link rel="icon" href="assets/img/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <main class="container">
+        <section class="login-box" aria-labelledby="login-title">
+            <div class="brand">
+                <div class="logo" aria-hidden="true"><img class="jh_logo" src="assets/img/logo.png" alt="logo"></div>
+                <div>
+                <h1 id="login-title">Connexion_JEREMIE HUMBLE</h1>
+                    <p class="lead">Entrez vos identifiants pour accéder à votre tableau de bord</p>
+                </div>
+            </div>
+
+            <form id="loginForm" novalidate>
+                <div class="input-group">
+                    <label for="magasin" class="sr-only">Sélectionner un magasin</label>
+                    <i class="fas fa-store input-icon" aria-hidden="true"></i>
+                    <select class="input" id="magasin" name="magasin" required aria-label="Sélectionner un magasin">
+                        <option value="">-- Sélectionner un magasin --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="username" class="sr-only">Nom d'utilisateur ou email</label>
+                    <i class="fas fa-user input-icon" aria-hidden="true"></i>
+                    <input class="input" type="text" id="username" name="username" placeholder="Nom d'utilisateur ou Email" required autocomplete="username" />
+                </div>
+
+                <div class="input-group">
+                    <label for="password" class="sr-only">Mot de passe</label>
+                    <i class="fas fa-key input-icon" aria-hidden="true"></i>
+                    <input class="input" type="password" id="password" name="password" placeholder="Mot de passe" required autocomplete="current-password" />
+                    <button type="button" class="pwd-toggle" id="togglePwd" aria-pressed="false" aria-label="Afficher le mot de passe">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+
+                <div class="row">
+                    <label class="checkbox"><input type="checkbox" id="remember" name="remember" /> Se souvenir de moi</label>
+                    <a href="#" id="forgot" style="font-size:0.95rem;color:var(--accent)">Mot de passe oublié ?</a>
+                </div>
+
+                <button type="submit" class="btn-login">Se connecter</button>
+
+                <div id="status" role="status" aria-live="polite" class="status" hidden></div>
+
+                <p class="helper">Pas encore de compte ? <a href="register.html">Créer un compte</a></p>
+            </form>
+
+            <footer>© <span id="year"></span> SuperMarket Pro</footer>
+        </section>
+    </main>
+
+    <script src="assets/js/script.js"></script>
+    <script>
+        // Script pour charger les magasins au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMagasins();
+            
+            // Définir l'année
+            document.getElementById('year').textContent = new Date().getFullYear();
+        });
+
+        function loadMagasins() {
+            fetch('assets/Api/getMagasins.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const magasinSelect = document.getElementById('magasin');
+                        magasinSelect.innerHTML = '<option value="">-- Sélectionner un magasin --</option>';
+                        
+                        data.magasins.forEach(magasin => {
+                            const option = document.createElement('option');
+                            option.value = magasin.id_magasin;
+                            option.textContent = magasin.nom_magasin;
+                            magasinSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des magasins:', error);
+                });
+        }
+    </script>
+</body>
+</html>

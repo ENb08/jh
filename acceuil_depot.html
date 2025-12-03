@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SuperMarket Pro</title>
+    <meta name="description" content="Tableau de bord SuperMarket Pro — ventes, stock et rapports.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style_acceuil.css">
+    <link rel="icon" href="assets/img/favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+    <div class="app" id="app">
+        <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+            <div class="brand" role="img" aria-hidden="true">
+                <div class="logo"><img src="assets/img/logo.png" alt="Logo SuperMarket Pro"></div>
+                <div>
+                    <h2>SuperMarket Pro</h2>
+                    <div style="font-size:12px;color:var(--muted)">Gestion & ventes</div>
+                </div>
+            </div>
+
+            <nav class="menu" aria-label="Menu principal">
+                <a href="index.html" class="menu-item active" aria-current="page"><i class="fas fa-home"></i> Tableau de Bord</a>
+                <a href="pos.html" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
+                <a href="stock.html" class="menu-item"><i class="fas fa-box"></i> Gestion Stock</a>
+                <a href="users.html" class="menu-item"><i class="fas fa-users"></i> Clients</a>
+                <a href="tresoreri.html" class="menu-item"><i class="fas fa-chart-line"></i> Rapports</a>
+            </nav>
+
+            <div class="footer-small">© <span id="year"></span> SuperMarket Pro</div>
+        </aside>
+
+        <div class="overlay" id="overlay" tabindex="-1" hidden></div>
+
+        <main class="main-content" id="main">
+            <header class="topbar" role="banner">
+                <div class="left">
+                    <button class="btn-ghost" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h3 style="margin:0">Tableau de Bord</h3>
+                </div>
+
+                <div style="display:flex;gap:12px;align-items:center">
+                    <input class="search" type="search" placeholder="Rechercher une vente / produit..." aria-label="Rechercher">
+                    <div class="user-info" aria-hidden="false">
+                        <div style="text-align:right;margin-right:8px">
+                            <div style="font-weight:600">Admin</div>
+                            <div style="font-size:12px;color:var(--muted)" id="currentDate">—</div>
+                        </div>
+                        <div class="avatar" aria-hidden="true"><i class="fas fa-user"></i></div>
+                    </div>
+                </div>
+            </header>
+
+            <section class="cards-container" aria-label="Indicateurs">
+                <div class="card" style="border-left-color: #2563eb;">
+                    <h3>Ventes du Jour</h3>
+                    <p>1 250 €</p>
+                    <div style="margin-top:8px;font-size:13px;color:var(--muted)">+6.5% vs hier</div>
+                </div>
+
+                <div class="card" style="border-left-color: #10b981;">
+                    <h3>Clients</h3>
+                    <p>45</p>
+                    <div style="margin-top:8px;font-size:13px;color:var(--muted)">Fidélité : 12%</div>
+                </div>
+
+                <div class="card" style="border-left-color: #f59e0b;">
+                    <h3>Alertes Stock</h3>
+                    <p>3 Produits</p>
+                    <div style="margin-top:8px;font-size:13px;color:var(--muted)">Vérifier approvisionnement</div>
+                </div>
+            </section>
+
+            <h4>Dernières Ventes</h4>
+            <div class="table-wrap" role="region" aria-labelledby="recent-sales">
+                <table aria-describedby="recent-sales">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Client</th>
+                            <th>Montant</th>
+                            <th>Heure</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-id="#V1023" tabindex="0">
+                            <td>#V1023</td>
+                            <td>Client Comptoir</td>
+                            <td>25.00 €</td>
+                            <td>10:45</td>
+                            <td><span class="badge success">Payé</span></td>
+                        </tr>
+                        <tr data-id="#V1022" tabindex="0">
+                            <td>#V1022</td>
+                            <td>Jean Dupont</td>
+                            <td>120.50 €</td>
+                            <td>10:30</td>
+                            <td><span class="badge warn">En attente</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Simple interactivity: sidebar toggle, overlay, date fill, row click keyboard accessible
+        (function(){
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.getElementById('menuToggle');
+            const overlay = document.getElementById('overlay');
+            const yearEl = document.getElementById('year');
+            const dateEl = document.getElementById('currentDate');
+
+            // Set year and formatted date
+            const now = new Date();
+            yearEl.textContent = now.getFullYear();
+            dateEl.textContent = now.toLocaleString('fr-FR', {weekday:'short', day:'numeric', month:'short'});
+
+            function openSidebar(){
+                sidebar.classList.add('open');
+                overlay.hidden = false;
+                overlay.classList.add('show');
+                menuToggle.setAttribute('aria-expanded','true');
+            }
+            function closeSidebar(){
+                sidebar.classList.remove('open');
+                overlay.hidden = true;
+                overlay.classList.remove('show');
+                menuToggle.setAttribute('aria-expanded','false');
+            }
+
+            menuToggle.addEventListener('click', () => {
+                if (!sidebar.classList.contains('open')) openSidebar(); else closeSidebar();
+            });
+
+            overlay.addEventListener('click', closeSidebar);
+            // keyboard accessibility for overlay (Esc to close)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeSidebar();
+            });
+
+            // Make table rows clickable (simulate open sale)
+            document.querySelectorAll('tbody tr').forEach(tr => {
+                tr.addEventListener('click', () => {
+                    const id = tr.dataset.id || '';
+                    alert('Ouvrir détail de la vente ' + id);
+                });
+                tr.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        tr.click();
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+
+</html>
