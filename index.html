@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion — SuperMarket Pro</title>
+    <title>Connexion —Jérémie Humble</title>
     <meta name="description" content="Connexion à SuperMarket Pro — interface sécurisée pour accéder à votre tableau de bord.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -13,6 +13,14 @@
 <body>
     <main class="container">
         <section class="login-box" aria-labelledby="login-title">
+            <!-- Section Affichage Magasins -->
+            <div id="magasinsInfo" class="magasins-container" style="display: none;">
+                <h2 style="margin-bottom: 15px; color: #333; font-size: 18px;">📍 Nos Magasins</h2>
+                <div id="magasinsList" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
+                    <!-- Les magasins seront affichés ici -->
+                </div>
+            </div>
+
             <div class="brand">
                 <div class="logo" aria-hidden="true"><img class="jh_logo" src="assets/img/logo.png" alt="logo"></div>
                 <div>
@@ -66,7 +74,7 @@
         // Script pour charger les magasins au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
             loadMagasins();
-            
+
             // Définir l'année
             document.getElementById('year').textContent = new Date().getFullYear();
         });
@@ -75,16 +83,35 @@
             fetch('assets/Api/getMagasins.php')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
+                    if (data.success && data.magasins.length > 0) {
                         const magasinSelect = document.getElementById('magasin');
+                        const magasinsList = document.getElementById('magasinsList');
+                        const magasinsInfo = document.getElementById('magasinsInfo');
+
+                        // Remplir le select
                         magasinSelect.innerHTML = '<option value="">-- Sélectionner un magasin --</option>';
-                        
+                        let magasinsHTML = '';
+
                         data.magasins.forEach(magasin => {
+                            // Ajouter au select
                             const option = document.createElement('option');
                             option.value = magasin.id_magasin;
                             option.textContent = magasin.nom_magasin;
                             magasinSelect.appendChild(option);
+
+                            // Afficher les informations du magasin
+                            magasinsHTML += `
+                                <div style="background: white; padding: 12px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #667eea;">
+                                    <strong style="color: #333; font-size: 15px;">🏪 ${magasin.nom_magasin}</strong><br>
+                                    <small style="color: #666;">📍 Adresse: ${magasin.adresse}</small><br>
+                                    <small style="color: #666;">📞 N°: ${magasin.numero_magasin}</small><br>
+                                    <small style="color: #999;">ID: ${magasin.id_magasin}</small>
+                                </div>
+                            `;
                         });
+
+                        magasinsList.innerHTML = magasinsHTML;
+                        magasinsInfo.style.display = 'block';
                     }
                 })
                 .catch(error => {
