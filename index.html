@@ -14,12 +14,7 @@
     <main class="container">
         <section class="login-box" aria-labelledby="login-title">
             <!-- Section Affichage Magasins -->
-            <div id="magasinsInfo" class="magasins-container" style="display: none;">
-                <h2 style="margin-bottom: 15px; color: #333; font-size: 18px;">📍 Nos Magasins</h2>
-                <div id="magasinsList" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
-                    <!-- Les magasins seront affichés ici -->
-                </div>
-            </div>
+           
 
             <div class="brand">
                 <div class="logo" aria-hidden="true"><img class="jh_logo" src="assets/img/logo.png" alt="logo"></div>
@@ -29,7 +24,7 @@
                 </div>
             </div>
 
-            <form id="loginForm" novalidate>
+            <form id="loginForm" novalidate action="assets/Api/login.php" method="post">
                 <div class="input-group">
                     <label for="magasin" class="sr-only">Sélectionner un magasin</label>
                     <i class="fas fa-store input-icon" aria-hidden="true"></i>
@@ -47,7 +42,7 @@
                 <div class="input-group">
                     <label for="password" class="sr-only">Mot de passe</label>
                     <i class="fas fa-key input-icon" aria-hidden="true"></i>
-                    <input class="input" type="password" id="password" name="password" placeholder="Mot de passe" required autocomplete="current-password" />
+                    <input class="input" type="password" id="password" name="password_users" placeholder="Mot de passe" required autocomplete="current-password" />
                     <button type="button" class="pwd-toggle" id="togglePwd" aria-pressed="false" aria-label="Afficher le mot de passe">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -100,14 +95,7 @@
                             magasinSelect.appendChild(option);
 
                             // Afficher les informations du magasin
-                            magasinsHTML += `
-                                <div style="background: white; padding: 12px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #667eea;">
-                                    <strong style="color: #333; font-size: 15px;">🏪 ${magasin.nom_magasin}</strong><br>
-                                    <small style="color: #666;">📍 Adresse: ${magasin.adresse}</small><br>
-                                    <small style="color: #666;">📞 N°: ${magasin.numero_magasin}</small><br>
-                                    <small style="color: #999;">ID: ${magasin.id_magasin}</small>
-                                </div>
-                            `;
+                         
                         });
 
                         magasinsList.innerHTML = magasinsHTML;

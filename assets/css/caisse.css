@@ -1,0 +1,440 @@
+   :root {
+       --bg: #f5f7fb;
+       --card: #fff;
+       --muted: #6b7280;
+       --accent: #2563eb;
+       --accent-2: #10b981;
+       --danger: #ef4444;
+       --shadow: rgba(15, 23, 42, 0.06);
+       font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+   }
+
+   * {
+       box-sizing: border-box
+   }
+
+   html,
+   body {
+       height: 100%;
+       margin: 0;
+       background: var(--bg);
+       color: #0f172a
+   }
+
+   .app {
+       display: flex;
+       min-height: 100vh
+   }
+
+   /* SIDEBAR */
+   .sidebar {
+       width: 260px;
+       padding: 20px;
+       background: linear-gradient(180deg, #ffffff, #fbfdff);
+       border-right: 1px solid #eef2f7
+   }
+
+   .brand {
+       display: flex;
+       gap: 12px;
+       align-items: center;
+       margin-bottom: 18px
+   }
+
+   .logo {
+       width: 44px;
+       height: 44px;
+       border-radius: 8px;
+       background: var(--accent);
+       color: white;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       font-weight: 700
+   }
+
+   .menu-item {
+       display: flex;
+       gap: 10px;
+       align-items: center;
+       padding: 10px;
+       border-radius: 8px;
+       text-decoration: none;
+       color: var(--muted);
+       margin-bottom: 6px
+   }
+
+   .menu-item.active {
+       background: rgba(37, 99, 235, 0.08);
+       color: var(--accent);
+       font-weight: 600
+   }
+
+   .sidebar .small {
+       font-size: 12px;
+       color: var(--muted);
+       margin-top: 12px
+   }
+
+   /* MAIN */
+   .main {
+       flex: 1;
+       padding: 18px;
+       display: flex;
+       flex-direction: column;
+       gap: 14px
+   }
+
+   .topbar {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       gap: 12px
+   }
+
+   .topbar h1 {
+       font-size: 1.05rem;
+       margin: 0
+   }
+
+   .controls {
+       display: flex;
+       gap: 10px;
+       align-items: center
+   }
+
+   .btn {
+       padding: 8px 12px;
+       border-radius: 8px;
+       border: none;
+       background: var(--accent);
+       color: white;
+       cursor: pointer;
+       font-weight: 600
+   }
+
+   .btn.secondary {
+       background: #fff;
+       border: 1px solid #e6e9ee;
+       color: var(--muted)
+   }
+
+   .btn.ghost {
+       background: transparent;
+       color: var(--accent);
+       border: 1px dashed rgba(37, 99, 235, 0.12)
+   }
+
+   .btn.danger {
+       background: var(--danger)
+   }
+
+   .btn.success {
+       background: var(--accent-2)
+   }
+
+   .btn:hover {
+       opacity: 0.9;
+       transform: translateY(-1px)
+   }
+
+   /* layout: products + cart */
+   .workspace {
+       display: grid;
+       grid-template-columns: 1fr 420px;
+       gap: 14px;
+       align-items: start
+   }
+
+   .panel {
+       background: var(--card);
+       padding: 14px;
+       border-radius: 12px;
+       box-shadow: 0 6px 18px var(--shadow)
+   }
+
+   .products-top {
+       display: flex;
+       gap: 8px;
+       align-items: center;
+       margin-bottom: 12px
+   }
+
+   .search {
+       flex: 1;
+       padding: 8px 12px;
+       border-radius: 10px;
+       border: 1px solid #eef2f7
+   }
+
+   .barcode {
+       width: 180px;
+       padding: 8px 10px;
+       border-radius: 10px;
+       border: 1px solid #eef2f7
+   }
+
+   .grid-products {
+       display: grid;
+       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+       gap: 10px
+   }
+
+   .card-product {
+       padding: 10px;
+       border-radius: 10px;
+       border: 1px solid #f1f5f9;
+       display: flex;
+       flex-direction: column;
+       gap: 8px
+   }
+
+   .prod-title {
+       font-weight: 600;
+       font-size: 0.95rem
+   }
+
+   .prod-meta {
+       font-size: 13px;
+       color: var(--muted)
+   }
+
+   .prod-actions {
+       display: flex;
+       gap: 8px;
+       align-items: center;
+       margin-top: auto
+   }
+
+   .badge {
+       padding: 6px 8px;
+       border-radius: 999px;
+       font-size: 12px;
+       color: #fff;
+       display: inline-block
+   }
+
+   .badge.ok {
+       background: var(--accent-2)
+   }
+
+   .badge.low {
+       background: #f59e0b
+   }
+
+   .badge.out {
+       background: var(--danger)
+   }
+
+   /* Cart & Checkout */
+   .cart-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       margin-bottom: 8px;
+       padding-bottom: 8px;
+       border-bottom: 1px solid #f1f5f9
+   }
+
+   .cart-list {
+       max-height: 280px;
+       overflow: auto;
+       margin-bottom: 8px
+   }
+
+   .cart-row {
+       display: flex;
+       gap: 8px;
+       align-items: center;
+       padding: 8px;
+       border-bottom: 1px solid #f3f6ff
+   }
+
+   .qty {
+       width: 84px;
+       display: flex;
+       gap: 6px;
+       align-items: center
+   }
+
+   .qty button {
+       padding: 6px;
+       border-radius: 6px;
+       border: 1px solid #eef2f7;
+       background: #fff;
+       cursor: pointer;
+       font-weight: 600
+   }
+
+   .totals {
+       padding: 12px;
+       border-radius: 8px;
+       background: #fbfdff;
+       border: 1px solid #eef2f7;
+       margin-bottom: 10px
+   }
+
+   .total-row {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       padding: 6px 0;
+       font-size: 13px
+   }
+
+   .total-row.grand {
+       border-top: 2px solid #eef2f7;
+       padding-top: 8px;
+       margin-top: 8px;
+       font-size: 1.1rem;
+       font-weight: 700;
+       color: var(--accent)
+   }
+
+   /* Checkout Panel */
+   .checkout-panel {
+       background: linear-gradient(135deg, #fbfdff 0%, #f0f6ff 100%);
+       padding: 16px;
+       border-radius: 10px;
+       border: 1px solid #d0ddf5;
+       margin-bottom: 12px
+   }
+
+   .checkout-title {
+       font-weight: 700;
+       font-size: 14px;
+       margin-bottom: 10px;
+       color: var(--accent)
+   }
+
+   .payment-options {
+       display: grid;
+       grid-template-columns: 1fr 1fr;
+       gap: 8px;
+       margin-bottom: 12px
+   }
+
+   .payment-btn {
+       padding: 10px;
+       border-radius: 8px;
+       border: 2px solid transparent;
+       background: #fff;
+       color: var(--muted);
+       font-weight: 600;
+       cursor: pointer;
+       transition: all .2s
+   }
+
+   .payment-btn.active {
+       border-color: var(--accent);
+       background: rgba(37, 99, 235, 0.08);
+       color: var(--accent)
+   }
+
+   .payment-input {
+       width: 100%;
+       padding: 10px;
+       border-radius: 8px;
+       border: 1px solid #e6e9ee;
+       font-size: 1rem;
+       font-weight: 600;
+       margin-bottom: 8px
+   }
+
+   .discount-group {
+       display: flex;
+       gap: 8px;
+       align-items: center;
+       margin-bottom: 10px
+   }
+
+   .discount-group input {
+       flex: 1;
+       padding: 8px;
+       border-radius: 8px;
+       border: 1px solid #eef2f7
+   }
+
+   .btn-action {
+       width: 100%;
+       padding: 10px;
+       border-radius: 8px;
+       border: none;
+       font-weight: 600;
+       cursor: pointer;
+       margin-bottom: 6px
+   }
+
+   .btn-action.checkout {
+       background: var(--accent-2);
+       color: white
+   }
+
+   .btn-action.cancel {
+       background: #f3f6ff;
+       color: var(--muted)
+   }
+
+   /* stock table */
+   table {
+       width: 100%;
+       border-collapse: collapse;
+       font-size: 13px
+   }
+
+   thead th {
+       padding: 10px;
+       text-align: left;
+       color: var(--muted);
+       border-bottom: 1px solid #eef2f7
+   }
+
+   tbody td {
+       padding: 10px;
+       border-bottom: 1px solid #f7fafc
+   }
+
+   .actions i {
+       cursor: pointer;
+       margin-right: 8px;
+       color: var(--muted)
+   }
+
+   /* modal */
+   .modal {
+       position: fixed;
+       inset: 0;
+       align-items: center;
+       justify-content: center;
+       background: rgba(2, 6, 23, 0.35);
+       z-index: 80;
+       display: none
+   }
+
+   .modal.show {
+       display: flex
+   }
+
+   .modal-box {
+       background: white;
+       padding: 16px;
+       border-radius: 12px;
+       min-width: 320px;
+       max-width: 640px
+   }
+
+   .input,
+   textarea,
+   select {
+       padding: 8px;
+       border-radius: 8px;
+       border: 1px solid #eef2f7;
+       width: 100%
+   }
+
+   /* responsive */
+   @media (max-width:1200px) {
+       .workspace {
+           grid-template-columns: 1fr
+       }
+   }
