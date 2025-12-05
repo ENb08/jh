@@ -1,9 +1,3 @@
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -35,7 +29,7 @@
             border-radius: 10px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
         }
         .logo-section {
             text-align: center;
@@ -44,6 +38,26 @@
         .logo-section h1 {
             font-size: 24px;
             color: #333;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
         }
         .form-group {
             margin-bottom: 15px;
@@ -102,31 +116,10 @@
             text-align: center;
             margin-top: 20px;
             font-size: 14px;
-            color: #666;
         }
         .form-footer a {
             color: #667eea;
             text-decoration: none;
-            font-weight: 600;
-        }
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
-        }
-        .tab-btn {
-            padding: 10px 20px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: #999;
-            border-bottom: 3px solid transparent;
-        }
-        .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
         }
         .tab-content {
             display: none;
@@ -140,58 +133,58 @@
     <div class="register-container">
         <div class="logo-section">
             <h1>SuperMarket Pro</h1>
-            <p style="color: #999; font-size: 12px;">Créer un nouveau compte</p>
+            <p>Créer un compte</p>
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" data-tab="magasin">Nouveau Magasin</button>
-            <button class="tab-btn" data-tab="utilisateur">Nouvel Utilisateur</button>
+            <button type="button" class="tab-btn active" data-tab="magasin">Créer Magasin</button>
+            <button type="button" class="tab-btn" data-tab="utilisateur">Créer Utilisateur</button>
         </div>
 
         <!-- Créer Magasin -->
         <div id="magasin" class="tab-content active">
             <div id="errorMagasin" class="error-message"></div>
             <div id="successMagasin" class="success-message"></div>
-            
-            <form id="formMagasin">
+
+            <form id="formMagasin" action="assets/Api/createMagasin.php " method="post">
                 <div class="form-group">
-                    <label for="nomMagasin">Nom du Magasin</label>
-                    <input type="text" id="nomMagasin" name="nomMagasin" required placeholder="Ex: SuperMarket Centre-Ville">
+                    <label for="nomMagasin">Nom du Magasin *</label>
+                    <input type="text" id="nomMagasin" name="nomMagasin" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="adresseMagasin">Adresse</label>
-                    <input type="text" id="adresseMagasin" name="adresseMagasin" required placeholder="Rue, Ville">
+                    <label for="adresseMagasin">Adresse *</label>
+                    <input type="text" id="adresseMagasin" name="adresseMagasin" required>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="telephoneMagasin">Téléphone</label>
-                        <input type="tel" id="telephoneMagasin" name="telephoneMagasin" required placeholder="+33 1 23 45 67 89">
+                        <label for="telephoneMagasin">Téléphone *</label>
+                        <input type="tel" id="telephoneMagasin" name="telephoneMagasin" required>
                     </div>
                     <div class="form-group">
-                        <label for="emailMagasin">Email</label>
-                        <input type="email" id="emailMagasin" name="emailMagasin" required placeholder="contact@magasin.fr">
+                        <label for="emailMagasin">Email *</label>
+                        <input type="email" id="emailMagasin" name="emailMagasin" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="nomProprio">Nom du Propriétaire</label>
-                    <input type="text" id="nomProprio" name="nomProprio" required placeholder="Votre nom complet">
+                    <label for="nomProprio">Nom du Propriétaire *</label>
+                    <input type="text" id="nomProprio" name="nomProprio" required>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="usernameMagasin">Identifiant Admin</label>
-                        <input type="text" id="usernameMagasin" name="usernameMagasin" required placeholder="admin">
+                        <label for="usernameMagasin">Nom d'utilisateur *</label>
+                        <input type="text" id="usernameMagasin" name="usernameMagasin" required>
                     </div>
                     <div class="form-group">
-                        <label for="passwordMagasin">Mot de passe</label>
-                        <input type="password" id="passwordMagasin" name="passwordMagasin" required placeholder="••••••••">
+                        <label for="passwordMagasin">Mot de passe *</label>
+                        <input type="password" id="passwordMagasin" name="passwordMagasin" required>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-register">Créer le Magasin</button>
+                <button type="submit" class="btn-register">Créer Magasin</button>
             </form>
         </div>
 
@@ -199,45 +192,47 @@
         <div id="utilisateur" class="tab-content">
             <div id="errorUtilisateur" class="error-message"></div>
             <div id="successUtilisateur" class="success-message"></div>
-            
+
             <form id="formUtilisateur">
                 <div class="form-group">
-                    <label for="magasinSelect">Magasin</label>
+                    <label for="magasinSelect">Magasin *</label>
                     <select id="magasinSelect" name="magasinSelect" required>
                         <option value="">-- Sélectionner --</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="nomUtilisateur">Nom d'utilisateur</label>
-                    <input type="text" id="nomUtilisateur" name="nomUtilisateur" required placeholder="jean.dupont">
+                    <label for="nomUtilisateur">Nom d'utilisateur *</label>
+                    <input type="text" id="nomUtilisateur" name="nomUtilisateur" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="passwordUtilisateur">Mot de passe</label>
-                    <input type="password" id="passwordUtilisateur" name="passwordUtilisateur" required placeholder="••••••••">
+                    <label for="passwordUtilisateur">Mot de passe *</label>
+                    <input type="password" id="passwordUtilisateur" name="passwordUtilisateur" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="telephoneUtilisateur">Téléphone</label>
-                    <input type="tel" id="telephoneUtilisateur" name="telephoneUtilisateur" required placeholder="+33">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="telephoneUtilisateur">Téléphone *</label>
+                        <input type="tel" id="telephoneUtilisateur" name="telephoneUtilisateur" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="roleUtilisateur">Rôle *</label>
+                        <select id="roleUtilisateur" name="roleUtilisateur" required>
+                            <option value="">-- Sélectionner --</option>
+                            <option value="1">Admin</option>
+                            <option value="2">Vendeur</option>
+                            <option value="3">Caissier</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="roleUtilisateur">Rôle</label>
-                    <select id="roleUtilisateur" name="roleUtilisateur" required>
-                        <option value="caisse">Caissier</option>
-                        <option value="depot">Dépôt</option>
-                        <option value="admin">Administrateur</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="btn-register">Créer l'Utilisateur</button>
+                <button type="submit" class="btn-register">Créer Utilisateur</button>
             </form>
         </div>
 
         <div class="form-footer">
-            Déjà inscrit ? <a href="login.html">Se connecter</a>
+            Déjà inscrit ? <a href="index.html">Se connecter</a>
         </div>
     </div>
 
