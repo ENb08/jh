@@ -255,44 +255,81 @@
     <div class="modal" id="modalAddStock">
         <div class="modal-box">
             <div class="modal-header">
-                <h3>Entrée de Stock</h3>
+                <h3><i class="fas fa-arrow-up"></i> Entrée de Stock</h3>
                 <button class="modal-close" data-close="modalAddStock">&times;</button>
             </div>
 
-            <div class="form-row full">
-                <div class="form-label">Produit</div>
-                <select id="as-product" class="input" name="produit></select>
-            </div>
-
-            <div class="form-row">
-                <div>
-                    <div class="form-label">Dépôt destination</div>
-                    <select id="as-depot" class="input">
-                        <option value="principal">Principal</option>
-                        <option value="reserve">Réserve</option>
-                        <option value="vitrine">Vitrine</option>
+            <form id="formAddStock" >
+                <!-- Sélection du produit -->
+                <div class="form-row full">
+                    <div class="form-label">Produit <span class="required">*</span></div>
+                    <select id="as-product-id" class="input" name="produit" required>
+                        <option value="">-- Sélectionner un produit --</option>
                     </select>
                 </div>
-                <div>
-                    <div class="form-label">Quantité</div>
-                    <input id="as-qty" class="input" type="number" placeholder="0" step="1" />
+
+                <!-- Ligne 2: Dépôt et Quantité -->
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Dépôt destination <span class="required">*</span></div>
+                        <select id="as-depot" class="input" required>
+                            <option value="">-- Sélectionner --</option>
+                            <option value="principal">Principal</option>
+                            <option value="reserve">Réserve</option>
+                            <option value="vitrine">Vitrine</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="form-label">Quantité <span class="required">*</span></div>
+                        <input id="as-qty" class="input" type="number" placeholder="0" step="1" min="1" required />
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-row full">
-                <div class="form-label">Numéro Bon</div>
-                <input id="as-ref" class="input" placeholder="Ref. bon de commande / facture" />
-            </div>
+                <!-- Ligne 3: Date et Référence -->
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Date d'entrée <span class="required">*</span></div>
+                        <input id="as-date" class="input" type="date" required />
+                    </div>
+                    <div>
+                        <div class="form-label">Numéro de Bon <span class="required">*</span></div>
+                        <input id="as-ref" class="input" placeholder="Bon de commande, facture..." required />
+                    </div>
+                </div>
 
-            <div class="form-row full">
-                <div class="form-label">Notes</div>
-                <textarea id="as-notes" class="input" placeholder="Remarques..." style="min-height:60px"></textarea>
-            </div>
+                <!-- Ligne 4: Notes -->
+                <div class="form-row full">
+                    <div class="form-label">Notes / Observations</div>
+                    <textarea id="as-notes" class="input" placeholder="Remarques, problèmes détectés, conditions..." style="min-height:80px;resize:vertical"></textarea>
+                </div>
 
-            <div style="display:flex;gap:8px;margin-top:16px">
-                <button class="btn success" id="as-save">Enregistrer Entrée</button>
-                <button class="btn secondary" data-close="modalAddStock">Annuler</button>
-            </div>
+                <!-- Ligne 5: Informations du produit (affichage) -->
+                <div id="as-product-info" style="display:none;background:#f5f5f5;border-radius:6px;padding:12px;margin:12px 0;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:14px;">
+                        <div>
+                            <span style="color:#666">Prix Achat:</span>
+                            <div style="font-weight:600;font-size:16px;color:var(--accent)" id="as-buy-price">0.00 €</div>
+                        </div>
+                        <div>
+                            <span style="color:#666">Stock Actuel:</span>
+                            <div style="font-weight:600;font-size:16px;color:var(--accent-2)" id="as-current-stock">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+                    <button type="reset" class="btn secondary">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                    <button type="button" class="btn secondary" data-close="modalAddStock">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                    <button type="submit" class="btn success">
+                        <i class="fas fa-check"></i> Enregistrer Entrée
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

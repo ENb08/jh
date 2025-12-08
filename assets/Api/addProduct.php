@@ -61,7 +61,7 @@ if ($prix_achat < 0 || $prix_vente < 0 || $quantite_stock < 0) {
 }
 
 // Vérifier si le produit existe déjà
-$checkSql = "SELECT id_produit FROM produit WHERE reference = ? LIMIT 1";
+$checkSql = "SELECT id_produit FROM produit WHERE reference = ? and id_session = $id_session LIMIT 1";
 $checkStmt = $conn->prepare($checkSql);
 $checkStmt->bind_param("s", $reference);
 $checkStmt->execute();

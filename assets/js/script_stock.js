@@ -1,184 +1,139 @@
- // ===== DONNÉES GLOBALES =====
-// Ces variables stockent les données récupérées de la base de données
+// ===== DONNÉES GLOBALES (Minimum requis pour l'ajout de produit et l'affichage) =====
 let products = [];      // Liste de tous les produits
-let depots = [];        // Liste de tous les dépôts/entrepôts
-let movements = [];      // Historique des mouvements de stock
-let history = [];       // Historique complet des actions
+let depots = [];        // Laissé pour éviter les erreurs, mais non utilisé
+let movements = [];      // Laissé pour éviter les erreurs, mais non utilisé
+let history = [];       // Laissé pour éviter les erreurs, mais non utilisé
 
 // ===== UTILITAIRES RACCOURCIS =====
-// Fonction pour sélectionner un élément HTML par son ID (plus court que document.getElementById)
 const $ = id => document.getElementById(id);
 
 // Fonction pour formater un nombre en format monétaire français (ex: 10.50 €)
-const formatMoney = v => v.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+const formatMoney = v => parseFloat(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
 
 // ===== APPELS API (REQUÊTES À LA BASE DE DONNÉES) =====
-// ⚠️ COMMENTÉ POUR TEST - Utilisez les formulaires PHP directement
 
 /**
  * Récupère les données depuis l'API PHP
- * @param {string} endpoint - Le fichier PHP à appeler (ex: 'products.php')
- * @returns {Promise} - Les données au format JSON
- *
- * Explication: Cette fonction effectue une requête HTTP vers le serveur PHP
- * pour récupérer les données de la base de données MySQL
  */
 async function fetchData(endpoint) {
     try {
-        // Envoie une requête GET au serveur
-        const response = await fetch(`../api/${endpoint}`);
-
-        // Vérifie que la réponse est correcte
+        const response = await fetch(`assets/Api/${endpoint}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-        // Convertit la réponse JSON en objet JavaScript
         return await response.json();
     } catch (error) {
-        // Affiche l'erreur dans la console pour débogage
         console.error('Erreur fetch:', error);
-
-        // Alerte l'utilisateur en cas d'erreur
         alert('Erreur de connexion à la base de données');
         return null;
     }
 }
 
 /**
- * Charge tous les produits depuis la base de données
- * Explication:
- * - Appelle l'API pour récupérer les produits
- * - Stocke les données dans la variable 'products'
- * - Réaffiche la liste des produits à l'écran
- * - Met à jour la liste déroulante de sélection des produits
+ * Charge tous les produits depuis la base de données et rafraîchit l'interface
  */
 async function loadProducts() {
-    const data = await fetchData('products.php');
+    const data = await fetchData('../api/produit.php');
     if (data) products = data;  // Stocke les données reçues
-    renderProducts();           // Rafraîchit l'affichage
-    updateProductSelect();      // Met à jour le sélecteur
+    renderProducts();           // Rafraîchit l'affichage du tableau
+    updateProductSelect();      // RESTITUÉ : Met à jour la liste déroulante d'ajout de stock
 }
 
-/**
- * Charge tous les dépôts depuis la base de données
- * Explication: Récupère la liste des entrepôts/zones de stockage
- */
-async function loadDepots() {
-    const data = await fetchData('depots.php');
-    if (data) depots = data;
-    renderDepots();
-}
+// Fonctions laissées pour la compatibilité avec loadProducts, mais sans corps
+async function loadDepots() {}
+async function loadMovements() {}
+async function loadHistory() {}
+async function loadAlerts() {}
 
-/**
- * Charge l'historique des mouvements de stock
- * Explication: Récupère les entrées/sorties de produits (achat, vente, transfert)
- */
-async function loadMovements() {
-    const data = await fetchData('movements.php');
-    if (data) movements = data;
-    renderMovements();
-}
-
-/**
- * Charge l'historique complet des actions
- * Explication: Enregistre toutes les modifications effectuées dans le système
- */
-async function loadHistory() {
-    const data = await fetchData('history.php');
-    if (data) history = data;
-    renderHistory();
-}
-
-/**
- * Charge et affiche les alertes de stock
- * Explication: Vérifie les produits en rupture ou stock bas
- */
-async function loadAlerts() {
-    renderAlerts();
-}
-
-// ===== FONCTIONS UTILITAIRES DE LOGIQUE =====
+// ===== FONCTIONS UTILITAIRES DE LOGIQUE (Nécessaires pour renderProducts) =====
 
 /**
  * Détermine l'état du stock d'un produit
- * @param {number} id - L'ID du produit
- * @returns {string} - 'ok', 'low' (bas), 'critical' (rupture) ou 'unknown'
- *
- * Explication:
- * - Calcule le total du stock dans tous les dépôts
- * - Retourne 'critical' si le stock est à 0
- * - Retourne 'low' si le stock est inférieur au seuil d'alerte
- * - Retourne 'ok' si tout va bien
  */
 function getProductState(id) {
-    const p = products.find(x => x.id === id);  // Cherche le produit par ID
-    if (!p) return 'unknown';  // Produit non trouvé
+    const p = products.find(x => x.id == id);
+    if (!p) return 'unknown';
 
-    // Calcule le stock total
     const total = (p.depot_principal || 0) + (p.depot_reserve || 0) + (p.depot_vitrine || 0);
 
-    // Détermine l'état en fonction du total
-    return total === 0 ? 'critical' : total <= p.alert_threshold ? 'low' : 'ok';
+    return total == 0 ? 'critical' : total <= p.alert_threshold ? 'low' : 'ok';
 }
 
 /**
  * Calcule le stock total d'un produit dans tous les dépôts
- * @param {number} id - L'ID du produit
- * @returns {number} - La quantité totale en stock
- *
- * Explication: Additionne les quantités du produit dans chaque dépôt
  */
 function getTotalStock(id) {
-    const p = products.find(x => x.id === id);
+    const p = products.find(x => x.id == id);
     if (!p) return 0;
-    return (p.depot_principal || 0) + (p.depot_reserve || 0) + (p.depot_vitrine || 0);
+    // Les valeurs des dépôts sont stockées comme chaînes dans le JSON, on doit les convertir en nombre
+    return parseInt(p.depot_principal || 0) + parseInt(p.depot_reserve || 0) + parseInt(p.depot_vitrine || 0);
 }
 
 // ===== FONCTIONS D'AFFICHAGE (RENDER) =====
 
 /**
+ * Met à jour la liste déroulante de sélection des produits dans la modale d'ajout de stock
+ * (RESTITUÉ)
+ */
+function updateProductSelect() {
+    const select = $('as-product-id');
+    select.innerHTML = '<option value="">-- Sélectionner un produit --</option>';
+
+    products.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `[${p.code}] ${p.name} (Stock: ${getTotalStock(p.id)})`;
+        select.appendChild(option);
+    });
+}
+
+/**
+ * Affiche les informations du produit sélectionné dans la modale d'ajout de stock
+ * (RESTITUÉ)
+ */
+function renderAddStockInfo(productId) {
+    const infoPanel = $('as-product-info');
+    const p = products.find(x => x.id == productId);
+
+    if (p) {
+        infoPanel.style.display = 'block';
+        $('as-current-stock').textContent = getTotalStock(p.id);
+        $('as-current-buy-price').textContent = formatMoney(p.buy_price);
+        $('as-current-sale-price').textContent = formatMoney(p.sale_price);
+        $('as-new-buy-price').value = parseFloat(p.buy_price).toFixed(2); // Pré-remplir le prix d'achat
+        $('as-new-sale-price').placeholder = `0.00 (actuel: ${formatMoney(p.sale_price)})`; // Indiquer le prix de vente actuel
+    } else {
+        infoPanel.style.display = 'none';
+        $('as-new-buy-price').value = '';
+        $('as-new-sale-price').value = '';
+    }
+}
+
+/**
  * Affiche la liste des produits dans le tableau
- * @param {string} searchText - Texte de recherche (par défaut vide)
- * @param {string} filterState - Filtre par état (ok, low, critical)
- * @param {string} filterDepot - Filtre par dépôt
- *
- * Explication:
- * - Parcourt tous les produits
- * - Applique les filtres de recherche et d'état
- * - Crée une ligne de tableau pour chaque produit
- * - Met à jour les statistiques (total, valeur, ruptures, etc.)
  */
 function renderProducts(searchText = '', filterState = '', filterDepot = '') {
-    const tbody = $('productsTable');  // Trouve le corps du tableau HTML
-    tbody.innerHTML = '';  // Vide le tableau
+    const tbody = $('productsTable');
+    tbody.innerHTML = '';
 
-    // Variables pour les statistiques
     let total = 0, value = 0, low = 0, critical = 0;
 
-    // Parcourt chaque produit
     products.forEach(p => {
-        // Vérifie si le produit correspond à la recherche
         const matchSearch = searchText === '' ||
             (p.code + ' ' + p.name + ' ' + p.category)
             .toLowerCase()
             .includes(searchText.toLowerCase());
 
-        // Récupère l'état du produit
         const state = getProductState(p.id);
-
-        // Vérifie si le produit correspond au filtre d'état
         const matchState = filterState === '' || filterState === state;
 
-        // Si le produit ne correspond pas aux filtres, passe au suivant
         if (!matchSearch || !matchState) return;
 
-        // Compte le produit et met à jour les statistiques
         total++;
         const totalStock = getTotalStock(p.id);
-        value += totalStock * p.buy_price;  // Calcule la valeur en stock
+        // Assurez-vous que buy_price est traité comme un nombre
+        value += totalStock * parseFloat(p.buy_price || 0);
         if (state === 'critical') critical++;
         if (state === 'low') low++;
 
-        // Crée une nouvelle ligne de tableau
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.code}</strong></td>
@@ -187,7 +142,7 @@ function renderProducts(searchText = '', filterState = '', filterDepot = '') {
             <td>${formatMoney(p.buy_price)}</td>
             <td>${formatMoney(p.sale_price)}</td>
             <td style="text-align:center;font-weight:600">${p.depot_principal || 0}</td>
-            <td style="text-align:center">${p.depot_reserve || 0}</td>
+            
             <td style="text-align:center">${p.depot_vitrine || 0}</td>
             <td>${state === 'ok' ? '<span class="badge ok">En stock</span>' : state === 'low' ? '<span class="badge low">Bas</span>' : '<span class="badge critical">Rupture</span>'}</td>
             <td>
@@ -195,349 +150,107 @@ function renderProducts(searchText = '', filterState = '', filterDepot = '') {
                 <i class="fas fa-trash" data-del="${p.id}" style="cursor:pointer;color:var(--danger)" title="Supprimer"></i>
             </td>
         `;
-        tbody.appendChild(tr);  // Ajoute la ligne au tableau
+        tbody.appendChild(tr);
     });
 
     // Met à jour les statistiques affichées
     $('stat-total').textContent = products.length;
     $('stat-value').textContent = formatMoney(
-        products.reduce((s, p) => s + getTotalStock(p.id) * p.buy_price, 0)
+        products.reduce((s, p) => s + getTotalStock(p.id) * parseFloat(p.buy_price || 0), 0)
     );
     $('stat-low').textContent = products.filter(p => getProductState(p.id) === 'low').length;
     $('stat-critical').textContent = products.filter(p => getProductState(p.id) === 'critical').length;
 }
 
-/**
- * Affiche l'historique des mouvements de stock
- * Explication: Crée un tableau montrant toutes les entrées/sorties/transferts
- */
-function renderMovements() {
-    const tbody = $('movementsTable');
-    tbody.innerHTML = '';
-
-    movements.forEach(m => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${new Date(m.created_at).toLocaleString('fr-FR')}</td>
-            <td>
-                <span class="badge ${m.movement_type === 'IN' ? 'ok' : m.movement_type === 'OUT' ? 'info' : 'low'}">
-                    ${m.movement_type === 'IN' ? 'Entrée' : m.movement_type === 'OUT' ? 'Sortie' : 'Transfert'}
-                </span>
-            </td>
-            <td>${m.product_name}</td>
-            <td style="font-weight:600">${m.quantity}</td>
-            <td>${m.from_depot} → ${m.to_depot}</td>
-            <td>${m.reference_number}</td>
-            <td>${m.notes}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-/**
- * Affiche la liste des dépôts avec leurs statistiques
- * Explication:
- * - Affiche le nom, localisation et type de chaque dépôt
- * - Calcule le nombre d'articles et la valeur totale par dépôt
- */
-function renderDepots() {
-    const tbody = $('depotsTable');
-    tbody.innerHTML = '';
-
-    depots.forEach(d => {
-        // Calcule le nombre d'articles dans ce dépôt
-        const articles = products.reduce((sum, p) => {
-            if (d.type === 'principal') sum += (p.depot_principal || 0);
-            else if (d.type === 'reserve') sum += (p.depot_reserve || 0);
-            else if (d.type === 'vitrine') sum += (p.depot_vitrine || 0);
-            return sum;
-        }, 0);
-
-        // Calcule la valeur totale du dépôt (quantité × prix d'achat)
-        const depotValue = products.reduce((sum, p) => {
-            let qty = 0;
-            if (d.type === 'principal') qty = (p.depot_principal || 0);
-            else if (d.type === 'reserve') qty = (p.depot_reserve || 0);
-            else if (d.type === 'vitrine') qty = (p.depot_vitrine || 0);
-            return sum + qty * p.buy_price;
-        }, 0);
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${d.name}</strong></td>
-            <td>${d.location}</td>
-            <td><span class="badge info">${d.type.charAt(0).toUpperCase() + d.type.slice(1)}</span></td>
-            <td>${d.capacity} m³</td>
-            <td style="font-weight:600">${articles}</td>
-            <td>${formatMoney(depotValue)}</td>
-            <td><i class="fas fa-edit" data-edit-depot="${d.id}" style="cursor:pointer" title="Modifier"></i></td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-/**
- * Affiche les alertes de stock (ruptures et stocks bas)
- * Explication:
- * - Affiche une alerte CRITIQUE rouge si le produit est en rupture
- * - Affiche une alerte JAUNE si le stock est en-dessous du seuil d'alerte
- * - Affiche un message de succès si tout est normal
- */
-function renderAlerts() {
-    const container = $('alertsList');
-    container.innerHTML = '';
-
-    // Affiche les ruptures complètes
-    products.filter(p => getProductState(p.id) === 'critical').forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'alert danger';  // Alerte rouge
-        div.innerHTML = `
-            <i class="fas fa-exclamation-triangle"></i>
-            <div>
-                <strong>${p.name}</strong> — Stock CRITIQUE<br>
-                <span class="small-muted">Réf: ${p.code} | Stock total: ${getTotalStock(p.id)}</span>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-
-    // Affiche les stocks bas
-    products.filter(p => getProductState(p.id) === 'low').forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'alert warning';  // Alerte orange
-        div.innerHTML = `
-            <i class="fas fa-exclamation-circle"></i>
-            <div>
-                <strong>${p.name}</strong> — Stock Bas<br>
-                <span class="small-muted">Réf: ${p.code} | Stock: ${getTotalStock(p.id)} (seuil: ${p.alert_threshold})</span>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-
-    // Si aucune alerte, affiche un message positif
-    if (container.innerHTML === '') {
-        container.innerHTML = '<div class="alert success"><i class="fas fa-check-circle"></i> Aucune alerte — Stock normal !</div>';
-    }
-}
-
-/**
- * Affiche l'historique complet de toutes les actions
- * Explication: Enregistre qui a fait quoi et quand
- */
-function renderHistory() {
-    const tbody = $('historyTable');
-    tbody.innerHTML = '';
-
-    // Affiche les actions les plus récentes en premier (slice().reverse())
-    history.slice().reverse().forEach(h => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${new Date(h.created_at).toLocaleString('fr-FR')}</td>
-            <td><span class="badge info">${h.action_type}</span></td>
-            <td>${h.details}</td>
-            <td>${h.user_name}</td>
-            <td>${h.remarks}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-/**
- * Met à jour la liste déroulante de sélection des produits
- * Explication: Remplit la liste avec tous les produits disponibles
- */
-function updateProductSelect() {
-    const sel = $('as-product');
-    sel.innerHTML = '<option value="">-- Sélectionner --</option>';
-
-    // Ajoute chaque produit à la liste
-    products.forEach(p => {
-        sel.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
-    });
-}
-
 // ===== FONCTIONS D'ENREGISTREMENT (SAVE) =====
 
 /**
- * Ajoute un nouveau produit à la base de données
- * @param {string} code - Code-barre ou référence
- * @param {string} name - Nom du produit
- * @param {string} category - Catégorie (Alimentaire, Boisson, etc.)
- * @param {number} buyPrice - Prix d'achat
- * @param {number} salePrice - Prix de vente
- * @param {number} alertThreshold - Seuil d'alerte stock bas
- * @param {number} initial - Stock initial
- * @returns {boolean} - true si succès, false si erreur
+ * Ajoute un nouveau produit à la base de données (CONSERVÉ)
  */
 async function saveProduct(code, name, category, buyPrice, salePrice, alertThreshold, initial) {
-    // ===== VALIDATIONS SÉCURISÉES =====
-
-    // Valider référence (code)
+    // ... (Logique de validation et d'enregistrement de saveProduct) ...
     if (!code || code.trim() === '') {
         alert('❌ Erreur: Veuillez entrer une référence/code');
         return false;
     }
-    if (code.length < 2) {
-        alert('❌ Erreur: La référence doit contenir au moins 2 caractères');
+    if (code.length < 2 || code.length > 50) {
+        alert('❌ Erreur: La référence doit contenir entre 2 et 50 caractères');
         return false;
     }
-    if (code.length > 50) {
-        alert('❌ Erreur: La référence ne doit pas dépasser 50 caractères');
-        return false;
-    }
-
-    // Valider nom du produit
     if (!name || name.trim() === '') {
         alert('❌ Erreur: Veuillez entrer un nom de produit');
         return false;
     }
-    if (name.length < 3) {
-        alert('❌ Erreur: Le nom du produit doit contenir au moins 3 caractères');
+    if (name.length < 3 || name.length > 100) {
+        alert('❌ Erreur: Le nom du produit doit contenir entre 3 et 100 caractères');
         return false;
     }
-    if (name.length > 100) {
-        alert('❌ Erreur: Le nom du produit ne doit pas dépasser 100 caractères');
-        return false;
-    }
-
-    // Valider catégorie
     if (!category || category.trim() === '') {
         alert('❌ Erreur: Veuillez sélectionner une catégorie');
         return false;
     }
-
-    // Valider prix d'achat
-    if (isNaN(buyPrice) || buyPrice === '' || buyPrice === null) {
-        alert('❌ Erreur: Veuillez entrer un prix d\'achat valide');
+    // Validation des prix
+    const bP = parseFloat(buyPrice);
+    const sP = parseFloat(salePrice);
+    if (isNaN(bP) || bP <= 0 || bP > 999999.99) {
+        alert('❌ Erreur: Prix d\'achat invalide ou nul');
         return false;
     }
-    if (parseFloat(buyPrice) < 0) {
-        alert('❌ Erreur: Le prix d\'achat ne peut pas être négatif');
+    if (isNaN(sP) || sP <= 0 || sP > 999999.99) {
+        alert('❌ Erreur: Prix de vente invalide ou nul');
         return false;
     }
-    if (parseFloat(buyPrice) === 0) {
-        alert('❌ Erreur: Le prix d\'achat doit être supérieur à 0');
-        return false;
-    }
-    if (parseFloat(buyPrice) > 999999.99) {
-        alert('❌ Erreur: Le prix d\'achat est trop élevé');
-        return false;
-    }
-
-    // Valider prix de vente
-    if (isNaN(salePrice) || salePrice === '' || salePrice === null) {
-        alert('❌ Erreur: Veuillez entrer un prix de vente valide');
-        return false;
-    }
-    if (parseFloat(salePrice) < 0) {
-        alert('❌ Erreur: Le prix de vente ne peut pas être négatif');
-        return false;
-    }
-    if (parseFloat(salePrice) === 0) {
-        alert('❌ Erreur: Le prix de vente doit être supérieur à 0');
-        return false;
-    }
-    if (parseFloat(salePrice) > 999999.99) {
-        alert('❌ Erreur: Le prix de vente est trop élevé');
-        return false;
-    }
-
-    // Valider que le prix de vente >= prix d'achat
-    if (parseFloat(salePrice) < parseFloat(buyPrice)) {
+    if (sP < bP) {
         alert('❌ Erreur: Le prix de vente doit être supérieur ou égal au prix d\'achat');
         return false;
     }
-
-    // Valider seuil d'alerte
-    if (isNaN(alertThreshold) || alertThreshold === '' || alertThreshold === null) {
-        alert('❌ Erreur: Veuillez entrer un seuil d\'alerte valide');
+    // Validation du seuil
+    const aT = parseInt(alertThreshold);
+    if (isNaN(aT) || aT < 0 || aT > 99999) {
+        alert('❌ Erreur: Seuil d\'alerte invalide');
         return false;
     }
-    if (parseInt(alertThreshold) < 0) {
-        alert('❌ Erreur: Le seuil d\'alerte ne peut pas être négatif');
-        return false;
-    }
-    if (parseInt(alertThreshold) > 99999) {
-        alert('❌ Erreur: Le seuil d\'alerte est trop élevé');
-        return false;
-    }
-
-    // Valider stock initial
-    if (isNaN(initial) || initial === '' || initial === null) {
-        alert('❌ Erreur: Veuillez entrer un stock initial valide');
-        return false;
-    }
-    if (parseInt(initial) < 0) {
-        alert('❌ Erreur: Le stock initial ne peut pas être négatif');
-        return false;
-    }
-    if (parseInt(initial) > 99999) {
-        alert('❌ Erreur: Le stock initial est trop élevé');
+    // Validation du stock initial
+    const init = parseInt(initial);
+    if (isNaN(init) || init < 0 || init > 99999) {
+        alert('❌ Erreur: Stock initial invalide');
         return false;
     }
 
     // Crée un objet FormData pour envoyer les données
     const formData = new FormData();
-
-    // Mappage des variables JS vers les clés POST attendues par addProduct.php
-    formData.append('reference', code.trim());             // Code JS -> reference PHP
-    formData.append('nom_produit', name.trim());           // Name JS -> nom_produit PHP
-    formData.append('categorie', category.trim());         // Category JS -> categorie PHP
-    formData.append('Prix_Achat', parseFloat(buyPrice));   // buyPrice JS -> Prix_Achat PHP
-    formData.append('Prix_Vente', parseFloat(salePrice));  // salePrice JS -> Prix_Vente PHP
-    formData.append('Seuil_Alerte', parseInt(alertThreshold)); // alertThreshold JS -> Seuil_Alerte PHP
-    formData.append('Stock_Initial', parseInt(initial));   // initial JS -> Stock_Initial PHP
+    formData.append('reference', code.trim());
+    formData.append('nom_produit', name.trim());
+    formData.append('categorie', category.trim());
+    formData.append('Prix_Achat', bP);
+    formData.append('Prix_Vente', sP);
+    formData.append('Seuil_Alerte', aT);
+    formData.append('Stock_Initial', init);
 
     try {
-        // Envoie les données au serveur en POST
-        // Le chemin est corrigé pour correspondre à l'action du formulaire dans stock.html
-        console.log('📤 Envoi des données:', {
-            reference: code.trim(),
-            nom_produit: name.trim(),
-            categorie: category.trim(),
-            Prix_Achat: parseFloat(buyPrice),
-            Prix_Vente: parseFloat(salePrice),
-            Seuil_Alerte: parseInt(alertThreshold),
-            Stock_Initial: parseInt(initial)
-        });
-
         const response = await fetch('assets/Api/addProduct.php', {
             method: 'POST',
             body: formData
         });
 
-        console.log('📥 Réponse HTTP:', response.status, response.statusText);
-
-        // Récupère la réponse du serveur
         const result = await response.json();
 
-        console.log('📋 Résultat JSON:', result);
-
         if (result.success) {
-            console.log('✅ Produit ajouté avec succès:', result);
             alert('✅ Produit ajouté avec succès');
-            // Réinitialiser les champs du formulaire
+            // Réinitialiser les champs du formulaire (simplifié)
             $('np-code').value = '';
             $('np-name').value = '';
             $('np-category').value = '';
             $('np-buy').value = '';
             $('np-sale').value = '';
-            $('np-alert').value = '10';
+            $('np-alert').value = '5';
             $('np-initial').value = '0';
 
             // Fermer la modale
-            const modalElement = $('modalNewProduct');
-            if (modalElement) {
-                modalElement.classList.remove('show');
-            }
+            $('modalNewProduct').classList.remove('show');
 
             // Recharger les données
             loadProducts();
-            loadHistory();
-            loadAlerts();
-  console.log('✅ Produit ajouté avec succès:', result);
-            alert('✅ Produit ajouté avec succès');
             return true;
 
         } else {
@@ -547,267 +260,159 @@ async function saveProduct(code, name, category, buyPrice, salePrice, alertThres
         }
     } catch (error) {
         console.error('❌ Erreur complète:', error);
-        console.error('Stack:', error.stack);
         alert('❌ Erreur lors de l\'enregistrement: ' + error.message);
         return false;
     }
 }
 
+
 /**
- * Enregistre un mouvement de stock (entrée, sortie, transfert)
- * @param {number} productId - ID du produit
- * @param {string} depot - Dépôt destination (principal, reserve, vitrine)
- * @param {number} qty - Quantité
- * @param {string} ref - Numéro de référence (bon de commande, facture)
- * @param {string} notes - Notes supplémentaires
- * @returns {boolean} - true si succès, false si erreur
- *
- * Explication:
- * - Ajoute une ligne dans la table 'movements'
- * - Met à jour la quantité du produit dans le dépôt
- * - Enregistre l'action dans l'historique
- * - Rafraîchit tous les affichages
+ * Enregistre une entrée de stock (Ajout de Stock)
+ * (RESTITUÉ)
  */
-async function saveMovement(productId, depot, qty, ref, notes) {
-    // ===== VALIDATIONS SÉCURISÉES =====
-
-    if (productId <= 0) {
-        alert('❌ Erreur: Veuillez sélectionner un produit');
+async function saveMovement(productId, quantity, depot, newBuyPrice, newSalePrice, note) {
+    // ===== VALIDATIONS DU MOUVEMENT DE STOCK =====
+    if (!productId) {
+        alert('❌ Erreur: Veuillez sélectionner un produit.');
         return false;
     }
 
-    if (!depot || depot.trim() === '') {
-        alert('❌ Erreur: Veuillez sélectionner un dépôt');
+    const q = parseInt(quantity);
+    if (isNaN(q) || q <= 0) {
+        alert('❌ Erreur: La quantité doit être un nombre positif.');
         return false;
     }
 
-    if (qty <= 0) {
-        alert('❌ Erreur: La quantité doit être supérieure à 0');
+    if (!depot || (depot !== 'principal' && depot !== 'reserve' && depot !== 'vitrine')) {
+        alert('❌ Erreur: Veuillez sélectionner un dépôt valide.');
         return false;
     }
 
-    if (qty > 99999) {
-        alert('❌ Erreur: La quantité est trop élevée');
+    const newBP = parseFloat(newBuyPrice);
+    if (isNaN(newBP) || newBP <= 0 || newBP > 999999.99) {
+        alert('❌ Erreur: Le prix d\'achat doit être un nombre positif.');
         return false;
     }
 
+    let newSP = null;
+    if (newSalePrice && newSalePrice.trim() !== "") {
+        newSP = parseFloat(newSalePrice);
+        if (isNaN(newSP) || newSP <= 0 || newSP > 999999.99) {
+             alert('❌ Erreur: Le prix de vente optionnel est invalide.');
+             return false;
+        }
+        if (newSP < newBP) {
+            alert('❌ Erreur: Le nouveau prix de vente doit être supérieur ou égal au nouveau prix d\'achat.');
+            return false;
+        }
+    }
+    
+    if (note.length > 255) {
+        alert('❌ Erreur: La note ne doit pas dépasser 255 caractères.');
+        return false;
+    }
+    
+    // Création du FormData pour l'API
     const formData = new FormData();
-    formData.append('id_produit', productId);
-    formData.append('depot', depot.trim());
-    formData.append('quantite', parseInt(qty));
-    formData.append('numero_reference', ref.trim() || 'MANUAL');
-    formData.append('notes', notes.trim() || '');
+    formData.append('product_id', productId);
+    formData.append('type', 'IN'); // Type : Entrée (IN)
+    formData.append('quantity', q);
+    formData.append('depot', depot);
+    formData.append('buy_price', newBP);
+    if (newSP !== null) {
+        formData.append('sale_price', newSP);
+    }
+    formData.append('note', note.trim());
 
     try {
-        console.log('📤 Entrée de stock:', {
-            id_produit: productId,
-            depot: depot,
-            quantite: qty,
-            numero_reference: ref,
-            notes: notes
-        });
-
         const response = await fetch('assets/Api/addStockEntree.php', {
             method: 'POST',
             body: formData
         });
 
-        console.log('📥 Réponse HTTP:', response.status, response.statusText);
-
         const result = await response.json();
 
-        console.log('📋 Résultat JSON:', result);
-
         if (result.success) {
-            console.log('✅ Entrée enregistrée:', result);
-            alert('✅ Entrée de stock enregistrée avec succès');
+            alert(`✅ Entrée de ${q} unités enregistrée avec succès.`);
+            
+            // Réinitialisation et fermeture
+            $('as-product-id').value = '';
+            $('as-quantity').value = '1';
+            $('as-new-buy-price').value = '';
+            $('as-new-sale-price').value = '';
+            $('as-note').value = '';
+            $('modalAddStock').classList.remove('show');
+            
+            // Masquer le panneau d'info
+            $('as-product-info').style.display = 'none';
 
-            // Réinitialiser les champs du formulaire
-            $('as-product').value = '';
-            $('as-depot').value = '';
-            $('as-qty').value = '';
-            $('as-ref').value = '';
-            $('as-notes').value = '';
-
-            // Fermer la modale
-            const modalElement = $('modalAddStock');
-            if (modalElement) {
-                modalElement.classList.remove('show');
-            }
-
-            // Recharger les données
+            // Recharger les données pour mettre à jour le catalogue
             loadProducts();
-            loadMovements();
-            loadAlerts();
-            loadHistory();
+            // loadMovements(); // Retiré
+            // loadHistory(); // Retiré
             return true;
         } else {
-            alert('❌ Erreur: ' + result.message);
+            alert('❌ Erreur lors de l\'enregistrement du mouvement: ' + result.message);
             console.error('Erreur API:', result);
             return false;
         }
+
     } catch (error) {
-        console.error('❌ Erreur complète:', error);
-        console.error('Stack:', error.stack);
-        alert('❌ Erreur lors de l\'enregistrement: ' + error.message);
+        console.error('❌ Erreur réseau lors de l\'enregistrement du mouvement:', error);
+        alert('❌ Erreur de communication avec le serveur.');
         return false;
     }
 }
 
-/**
- * Crée un nouveau dépôt/entrepôt
- * @param {string} name - Nom du dépôt
- * @param {string} type - Type (principal, reserve, vitrine)
- * @param {string} location - Localisation
- * @param {number} capacity - Capacité en m³
- * @param {string} manager - Responsable du dépôt
- * @returns {boolean} - true si succès, false si erreur
- *
- * Explication: Ajoute une nouvelle zone de stockage à la base de données
- */
-/*
-async function saveDepot(name, type, location, capacity, manager) {
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('type', type);
-    formData.append('location', location);
-    formData.append('capacity', capacity);
-    formData.append('manager', manager);
 
-    try {
-        const response = await fetch('../api/save_depot.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            alert('Dépôt créé');
-            loadDepots();  // Recharge la liste
-            return true;
-        } else {
-            alert('Erreur: ' + result.message);
-            return false;
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur lors de la création');
-        return false;
-    }
-}
-*/
-
-/**
- * Supprime un produit de la base de données
- * @param {number} id - ID du produit à supprimer
- * @returns {boolean} - true si succès, false si erreur
- *
- * Explication:
- * - Demande une confirmation à l'utilisateur
- * - Envoie une requête DELETE au serveur
- * - Recharge la liste des produits
- */
-/*
-async function deleteProduct(id) {
-    // Demande confirmation avant de supprimer
-    if (!confirm('Confirmer la suppression ?')) return false;
-
-    try {
-        const response = await fetch(`../api/delete_product.php?id=${id}`);
-        const result = await response.json();
-
-        if (result.success) {
-            alert('Produit supprimé');
-            loadProducts();  // Recharge la liste
-            return true;
-        } else {
-            alert('Erreur: ' + result.message);
-            return false;
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        return false;
-    }
-}
-*/
+// Les autres fonctions d'enregistrement (saveDepot, deleteProduct) ont été retirées
 
 // ===== INITIALISATION ET ÉVÉNEMENTS =====
-
-/**
- * Code exécuté au chargement de la page
- * Explication:
- * - Charge les données depuis la base de données
- * - Configure tous les événements (clics, changements)
- * - Active les onglets et modales
- */
-// Dans script_stock.js
-function updateProductSelect() {
-    const sel = $('as-product');
-    sel.innerHTML = '<option value="">-- Sélectionner --</option>';
-
-    // Ajoute chaque produit à la liste 
-    products.forEach(p => {
-        sel.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
-    });
-}
-
-
 
 document.addEventListener('DOMContentLoaded', () => {
     // Affiche l'année actuelle au pied de page
     $('year').textContent = new Date().getFullYear();
 
-    // ⚠️ COMMENTÉ POUR TEST - Utilisez les formulaires PHP directement
-    // Charge toutes les données depuis la base de données
+    // Charge les produits et dépôts pour l'affichage initial du catalogue
     loadProducts();
-    loadDepots();
-    loadMovements();
-    loadHistory();
-    loadAlerts();
+    // loadDepots(); // Les appels des autres fonctions de load ont été retirés
 
-    // ===== GESTION DES ONGLETS =====
-    // Chaque clic sur un onglet affiche le contenu correspondant
+    // ===== GESTION DES ONGLETS (Simplifié) =====
     document.querySelectorAll('.tab').forEach(btn => {
         btn.addEventListener('click', () => {
-            // Désactive tous les onglets
             document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-            // Active l'onglet cliqué
             btn.classList.add('active');
 
-            // Récupère le nom de l'onglet
             const tabName = btn.dataset.tab;
 
-            // Masque tous les contenu des onglets
             document.querySelectorAll('[role="tabpanel"]').forEach(p => p.style.display = 'none');
-            // Affiche le contenu de l'onglet sélectionné
             $('tab-' + tabName).style.display = 'block';
-
-            // Recharge l'historique si c'est l'onglet historique
-            if (tabName === 'history') loadHistory();
         });
     });
 
     // ===== GESTION DES MODALES (FENÊTRES POP-UP) =====
 
     /**
-     * Ouvre une modale en ajoutant la classe 'show'
-     * @param {string} id - ID de la modale
+     * Ouvre une modale
      */
     function openModal(id) {
         $(id).classList.add('show');
     }
 
     /**
-     * Ferme une modale en supprimant la classe 'show'
-     * @param {string} id - ID de la modale
-     * Explication: Réinitialise aussi tous les champs du formulaire
+     * Ferme une modale
      */
     function closeModal(id) {
         $(id).classList.remove('show');
-        // Vide tous les champs du formulaire
-        const inputs = $(id).querySelectorAll('input, textarea, select');
-        inputs.forEach(inp => inp.value = '');
+        // Vide tous les champs du formulaire (essentiel pour la réinitialisation)
+        const form = $(id).querySelector('form');
+        if (form) form.reset();
+
+        // Réinitialisation spécifique pour l'ajout de stock
+        if (id === 'modalAddStock') {
+             $('as-product-id').value = '';
+             $('as-product-info').style.display = 'none';
+        }
     }
 
     // Boutons de fermeture des modales
@@ -827,109 +432,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bouton: Ajouter un produit
     $('btn-new-product').addEventListener('click', () => openModal('modalNewProduct'));
 
-    // Bouton: Sauvegarder le nouveau produit
-    $('np-save').addEventListener('click', async () => {
+    // Bouton: Enregistre le nouveau produit
+    $('np-save').addEventListener('click', async (e) => {
+        e.preventDefault();
         const code = $('np-code').value.trim();
         const name = $('np-name').value.trim();
         const category = $('np-category').value;
-        const buy = parseFloat($('np-buy').value) || 0;
-        const sale = parseFloat($('np-sale').value) || 0;
-        const alert = parseInt($('np-alert').value) || 10;
-        const initial = parseInt($('np-initial').value) || 0;
-
-        // Vérifie que les champs obligatoires sont remplis
-        if (!code || !name) return alert('Remplissez au moins code et désignation');
-
-        // Enregistre le produit et ferme la modale si succès
-        if (await saveProduct(code, name, category, buy, sale, alert, initial)) {
-            closeModal('modalNewProduct');
-        }
+        const buy = $('np-buy').value;
+        const sale = $('np-sale').value;
+        const alert = $('np-alert').value;
+        const initial = $('np-initial').value;
+        await saveProduct(code, name, category, buy, sale, alert, initial);
     });
 
-    // Bouton: Ajouter du stock (entrée)
-    $('btn-add-stock').addEventListener('click', () => openModal('modalAddStock'));
+    // Bouton: Entrée Stock (RESTITUÉ)
+    $('btn-add-stock').addEventListener('click', () => {
+        openModal('modalAddStock');
+        renderAddStockInfo($('as-product-id').value); // Pour initialiser/vider les infos
+    });
 
-    // Bouton: Sauvegarder l'entrée de stock
-    $('as-save').addEventListener('click', async () => {
-        const productId = $('as-product').value;
+    // Changement de produit dans la modale d'ajout de stock (RESTITUÉ)
+    $('as-product-id').addEventListener('change', e => {
+        renderAddStockInfo(e.target.value);
+    });
+
+    // Bouton: Enregistrer l'entrée de stock (RESTITUÉ)
+    $('as-save').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const productId = $('as-product-id').value;
+        const quantity = $('as-quantity').value;
         const depot = $('as-depot').value;
-        const qty = parseInt($('as-qty').value) || 0;
-        const ref = $('as-ref').value || 'MANUAL';
-        const notes = $('as-notes').value;
+        const newBuyPrice = $('as-new-buy-price').value;
+        const newSalePrice = $('as-new-sale-price').value;
+        const note = $('as-note').value;
 
-        // Vérifie que les données sont valides
-        if (!productId || qty <= 0) return alert('Sélectionnez un produit et quantité > 0');
-
-        // Enregistre le mouvement et ferme la modale si succès
-        if (await saveMovement(productId, depot, qty, ref, notes)) {
-            closeModal('modalAddStock');
-        }
+        await saveMovement(productId, quantity, depot, newBuyPrice, newSalePrice, note);
     });
 
-    // Bouton: Lancer un inventaire
-    // Explication: Réinitialise tous les stocks à 0 pour recompter physiquement
-    $('btn-inventory').addEventListener('click', async () => {
-        if (!confirm('Lancer inventaire ? (Tous les stocks seront réinitialisés)')) return;
-
-        try {
-            const response = await fetch('../api/start_inventory.php', {method: 'POST'});
-            const result = await response.json();
-
-            if (result.success) {
-                alert('Inventaire lancé');
-                loadProducts();
-                loadHistory();
-            } else {
-                alert('Erreur: ' + result.message);
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
-        }
-    });
-
-    // Bouton: Créer un nouveau dépôt
-    $('btn-new-depot').addEventListener('click', () => openModal('modalNewDepot'));
-
-    // Bouton: Sauvegarder le nouveau dépôt
-    $('nd-save').addEventListener('click', async () => {
-        const name = $('nd-name').value.trim();
-        const type = $('nd-type').value;
-        const location = $('nd-location').value.trim();
-        const capacity = parseFloat($('nd-capacity').value) || 0;
-        const manager = $('nd-manager').value.trim();
-
-        // Vérifie que les données obligatoires sont remplies
-        if (!name || !location) return alert('Remplissez au moins nom et localisation');
-
-        // Crée le dépôt et ferme la modale si succès
-        if (await saveDepot(name, type, location, capacity, manager)) {
-            closeModal('modalNewDepot');
-        }
-    });
-
-    // Bouton: Exporter les données en CSV (Excel)
-    $('btn-export').addEventListener('click', () => {
-        // Crée un texte au format CSV (colonnes séparées par ;)
-        let csv = 'Code;Produit;Catégorie;Prix A;Prix V;Principal;Reserve;Vitrine;Total;État\n';
-
-        // Ajoute chaque produit dans le CSV
-        products.forEach(p => {
-            const total = getTotalStock(p.id);
-            const state = getProductState(p.id);
-            csv += `${p.code};${p.name};${p.category};${p.buy_price};${p.sale_price};${p.depot_principal};${p.depot_reserve};${p.depot_vitrine};${total};${state}\n`;
-        });
-
-        // Télécharge le fichier
-        const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'stock_' + new Date().getTime() + '.csv';  // Nom avec timestamp
-        a.click();
-        URL.revokeObjectURL(url);
-    });
-
-    // ===== ÉVÉNEMENTS DE RECHERCHE ET FILTRES =====
+    // ===== ÉVÉNEMENTS DE RECHERCHE ET FILTRES (Conservés pour l'affichage du catalogue) =====
 
     // Recherche en temps réel
     $('search').addEventListener('input', e => {
@@ -941,14 +481,16 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProducts($('search').value, e.target.value, $('filter-depot').value);
     });
 
-    // ===== ÉVÉNEMENTS DÉLÉGUÉS DU TABLEAU =====
-    // Utilise la délégation pour capturer les clics sur les icônes d'actions
+    // Filtre par dépôt
+    $('filter-depot').addEventListener('change', e => {
+        renderProducts($('search').value, $('filter-state').value, e.target.value);
+    });
+
+    // ===== ÉVÉNEMENTS DÉLÉGUÉS DU TABLEAU (Simplifié) =====
     document.body.addEventListener('click', async e => {
-        // Supprime un produit
+        // Supprime un produit (la fonction deleteProduct est commentée, donc cela ne fait rien pour l'instant)
         if (e.target.dataset.del) {
-            if (await deleteProduct(e.target.dataset.del)) {
-                loadProducts();
-            }
+            alert('La fonction de suppression est désactivée.');
         }
     });
 });
