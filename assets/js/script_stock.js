@@ -1,4 +1,4 @@
-// ===== DONNÉES GLOBALES =====
+ // ===== DONNÉES GLOBALES =====
 // Ces variables stockent les données récupérées de la base de données
 let products = [];      // Liste de tous les produits
 let depots = [];        // Liste de tous les dépôts/entrepôts
@@ -13,12 +13,13 @@ const $ = id => document.getElementById(id);
 const formatMoney = v => v.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
 
 // ===== APPELS API (REQUÊTES À LA BASE DE DONNÉES) =====
+// ⚠️ COMMENTÉ POUR TEST - Utilisez les formulaires PHP directement
 
 /**
  * Récupère les données depuis l'API PHP
  * @param {string} endpoint - Le fichier PHP à appeler (ex: 'products.php')
  * @returns {Promise} - Les données au format JSON
- * 
+ *
  * Explication: Cette fonction effectue une requête HTTP vers le serveur PHP
  * pour récupérer les données de la base de données MySQL
  */
@@ -26,16 +27,16 @@ async function fetchData(endpoint) {
     try {
         // Envoie une requête GET au serveur
         const response = await fetch(`../api/${endpoint}`);
-        
+
         // Vérifie que la réponse est correcte
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
+
         // Convertit la réponse JSON en objet JavaScript
         return await response.json();
     } catch (error) {
         // Affiche l'erreur dans la console pour débogage
         console.error('Erreur fetch:', error);
-        
+
         // Alerte l'utilisateur en cas d'erreur
         alert('Erreur de connexion à la base de données');
         return null;
@@ -44,7 +45,7 @@ async function fetchData(endpoint) {
 
 /**
  * Charge tous les produits depuis la base de données
- * Explication: 
+ * Explication:
  * - Appelle l'API pour récupérer les produits
  * - Stocke les données dans la variable 'products'
  * - Réaffiche la liste des produits à l'écran
@@ -101,7 +102,7 @@ async function loadAlerts() {
  * Détermine l'état du stock d'un produit
  * @param {number} id - L'ID du produit
  * @returns {string} - 'ok', 'low' (bas), 'critical' (rupture) ou 'unknown'
- * 
+ *
  * Explication:
  * - Calcule le total du stock dans tous les dépôts
  * - Retourne 'critical' si le stock est à 0
@@ -111,10 +112,10 @@ async function loadAlerts() {
 function getProductState(id) {
     const p = products.find(x => x.id === id);  // Cherche le produit par ID
     if (!p) return 'unknown';  // Produit non trouvé
-    
+
     // Calcule le stock total
     const total = (p.depot_principal || 0) + (p.depot_reserve || 0) + (p.depot_vitrine || 0);
-    
+
     // Détermine l'état en fonction du total
     return total === 0 ? 'critical' : total <= p.alert_threshold ? 'low' : 'ok';
 }
@@ -123,7 +124,7 @@ function getProductState(id) {
  * Calcule le stock total d'un produit dans tous les dépôts
  * @param {number} id - L'ID du produit
  * @returns {number} - La quantité totale en stock
- * 
+ *
  * Explication: Additionne les quantités du produit dans chaque dépôt
  */
 function getTotalStock(id) {
@@ -139,7 +140,7 @@ function getTotalStock(id) {
  * @param {string} searchText - Texte de recherche (par défaut vide)
  * @param {string} filterState - Filtre par état (ok, low, critical)
  * @param {string} filterDepot - Filtre par dépôt
- * 
+ *
  * Explication:
  * - Parcourt tous les produits
  * - Applique les filtres de recherche et d'état
@@ -149,24 +150,24 @@ function getTotalStock(id) {
 function renderProducts(searchText = '', filterState = '', filterDepot = '') {
     const tbody = $('productsTable');  // Trouve le corps du tableau HTML
     tbody.innerHTML = '';  // Vide le tableau
-    
+
     // Variables pour les statistiques
     let total = 0, value = 0, low = 0, critical = 0;
 
     // Parcourt chaque produit
     products.forEach(p => {
         // Vérifie si le produit correspond à la recherche
-        const matchSearch = searchText === '' || 
+        const matchSearch = searchText === '' ||
             (p.code + ' ' + p.name + ' ' + p.category)
             .toLowerCase()
             .includes(searchText.toLowerCase());
-        
+
         // Récupère l'état du produit
         const state = getProductState(p.id);
-        
+
         // Vérifie si le produit correspond au filtre d'état
         const matchState = filterState === '' || filterState === state;
-        
+
         // Si le produit ne correspond pas aux filtres, passe au suivant
         if (!matchSearch || !matchState) return;
 
@@ -213,7 +214,7 @@ function renderProducts(searchText = '', filterState = '', filterDepot = '') {
 function renderMovements() {
     const tbody = $('movementsTable');
     tbody.innerHTML = '';
-    
+
     movements.forEach(m => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -235,14 +236,14 @@ function renderMovements() {
 
 /**
  * Affiche la liste des dépôts avec leurs statistiques
- * Explication: 
+ * Explication:
  * - Affiche le nom, localisation et type de chaque dépôt
  * - Calcule le nombre d'articles et la valeur totale par dépôt
  */
 function renderDepots() {
     const tbody = $('depotsTable');
     tbody.innerHTML = '';
-    
+
     depots.forEach(d => {
         // Calcule le nombre d'articles dans ce dépôt
         const articles = products.reduce((sum, p) => {
@@ -251,7 +252,7 @@ function renderDepots() {
             else if (d.type === 'vitrine') sum += (p.depot_vitrine || 0);
             return sum;
         }, 0);
-        
+
         // Calcule la valeur totale du dépôt (quantité × prix d'achat)
         const depotValue = products.reduce((sum, p) => {
             let qty = 0;
@@ -260,7 +261,7 @@ function renderDepots() {
             else if (d.type === 'vitrine') qty = (p.depot_vitrine || 0);
             return sum + qty * p.buy_price;
         }, 0);
-        
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${d.name}</strong></td>
@@ -327,7 +328,7 @@ function renderAlerts() {
 function renderHistory() {
     const tbody = $('historyTable');
     tbody.innerHTML = '';
-    
+
     // Affiche les actions les plus récentes en premier (slice().reverse())
     history.slice().reverse().forEach(h => {
         const tr = document.createElement('tr');
@@ -349,7 +350,7 @@ function renderHistory() {
 function updateProductSelect() {
     const sel = $('as-product');
     sel.innerHTML = '<option value="">-- Sélectionner --</option>';
-    
+
     // Ajoute chaque produit à la liste
     products.forEach(p => {
         sel.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
@@ -368,45 +369,186 @@ function updateProductSelect() {
  * @param {number} alertThreshold - Seuil d'alerte stock bas
  * @param {number} initial - Stock initial
  * @returns {boolean} - true si succès, false si erreur
- * 
- * Explication:
- * - Envoie les données du formulaire au serveur PHP
- * - Le serveur ajoute le produit à la base de données
- * - Recharge la liste des produits
- * - Affiche un message de confirmation à l'utilisateur
  */
 async function saveProduct(code, name, category, buyPrice, salePrice, alertThreshold, initial) {
+    // ===== VALIDATIONS SÉCURISÉES =====
+
+    // Valider référence (code)
+    if (!code || code.trim() === '') {
+        alert('❌ Erreur: Veuillez entrer une référence/code');
+        return false;
+    }
+    if (code.length < 2) {
+        alert('❌ Erreur: La référence doit contenir au moins 2 caractères');
+        return false;
+    }
+    if (code.length > 50) {
+        alert('❌ Erreur: La référence ne doit pas dépasser 50 caractères');
+        return false;
+    }
+
+    // Valider nom du produit
+    if (!name || name.trim() === '') {
+        alert('❌ Erreur: Veuillez entrer un nom de produit');
+        return false;
+    }
+    if (name.length < 3) {
+        alert('❌ Erreur: Le nom du produit doit contenir au moins 3 caractères');
+        return false;
+    }
+    if (name.length > 100) {
+        alert('❌ Erreur: Le nom du produit ne doit pas dépasser 100 caractères');
+        return false;
+    }
+
+    // Valider catégorie
+    if (!category || category.trim() === '') {
+        alert('❌ Erreur: Veuillez sélectionner une catégorie');
+        return false;
+    }
+
+    // Valider prix d'achat
+    if (isNaN(buyPrice) || buyPrice === '' || buyPrice === null) {
+        alert('❌ Erreur: Veuillez entrer un prix d\'achat valide');
+        return false;
+    }
+    if (parseFloat(buyPrice) < 0) {
+        alert('❌ Erreur: Le prix d\'achat ne peut pas être négatif');
+        return false;
+    }
+    if (parseFloat(buyPrice) === 0) {
+        alert('❌ Erreur: Le prix d\'achat doit être supérieur à 0');
+        return false;
+    }
+    if (parseFloat(buyPrice) > 999999.99) {
+        alert('❌ Erreur: Le prix d\'achat est trop élevé');
+        return false;
+    }
+
+    // Valider prix de vente
+    if (isNaN(salePrice) || salePrice === '' || salePrice === null) {
+        alert('❌ Erreur: Veuillez entrer un prix de vente valide');
+        return false;
+    }
+    if (parseFloat(salePrice) < 0) {
+        alert('❌ Erreur: Le prix de vente ne peut pas être négatif');
+        return false;
+    }
+    if (parseFloat(salePrice) === 0) {
+        alert('❌ Erreur: Le prix de vente doit être supérieur à 0');
+        return false;
+    }
+    if (parseFloat(salePrice) > 999999.99) {
+        alert('❌ Erreur: Le prix de vente est trop élevé');
+        return false;
+    }
+
+    // Valider que le prix de vente >= prix d'achat
+    if (parseFloat(salePrice) < parseFloat(buyPrice)) {
+        alert('❌ Erreur: Le prix de vente doit être supérieur ou égal au prix d\'achat');
+        return false;
+    }
+
+    // Valider seuil d'alerte
+    if (isNaN(alertThreshold) || alertThreshold === '' || alertThreshold === null) {
+        alert('❌ Erreur: Veuillez entrer un seuil d\'alerte valide');
+        return false;
+    }
+    if (parseInt(alertThreshold) < 0) {
+        alert('❌ Erreur: Le seuil d\'alerte ne peut pas être négatif');
+        return false;
+    }
+    if (parseInt(alertThreshold) > 99999) {
+        alert('❌ Erreur: Le seuil d\'alerte est trop élevé');
+        return false;
+    }
+
+    // Valider stock initial
+    if (isNaN(initial) || initial === '' || initial === null) {
+        alert('❌ Erreur: Veuillez entrer un stock initial valide');
+        return false;
+    }
+    if (parseInt(initial) < 0) {
+        alert('❌ Erreur: Le stock initial ne peut pas être négatif');
+        return false;
+    }
+    if (parseInt(initial) > 99999) {
+        alert('❌ Erreur: Le stock initial est trop élevé');
+        return false;
+    }
+
     // Crée un objet FormData pour envoyer les données
     const formData = new FormData();
-    formData.append('code', code);
-    formData.append('name', name);
-    formData.append('category', category);
-    formData.append('buy_price', buyPrice);
-    formData.append('sale_price', salePrice);
-    formData.append('alert_threshold', alertThreshold);
-    formData.append('initial_stock', initial);
+
+    // Mappage des variables JS vers les clés POST attendues par addProduct.php
+    formData.append('reference', code.trim());             // Code JS -> reference PHP
+    formData.append('nom_produit', name.trim());           // Name JS -> nom_produit PHP
+    formData.append('categorie', category.trim());         // Category JS -> categorie PHP
+    formData.append('Prix_Achat', parseFloat(buyPrice));   // buyPrice JS -> Prix_Achat PHP
+    formData.append('Prix_Vente', parseFloat(salePrice));  // salePrice JS -> Prix_Vente PHP
+    formData.append('Seuil_Alerte', parseInt(alertThreshold)); // alertThreshold JS -> Seuil_Alerte PHP
+    formData.append('Stock_Initial', parseInt(initial));   // initial JS -> Stock_Initial PHP
 
     try {
         // Envoie les données au serveur en POST
-        const response = await fetch('../api/save_product.php', {
+        // Le chemin est corrigé pour correspondre à l'action du formulaire dans stock.html
+        console.log('📤 Envoi des données:', {
+            reference: code.trim(),
+            nom_produit: name.trim(),
+            categorie: category.trim(),
+            Prix_Achat: parseFloat(buyPrice),
+            Prix_Vente: parseFloat(salePrice),
+            Seuil_Alerte: parseInt(alertThreshold),
+            Stock_Initial: parseInt(initial)
+        });
+
+        const response = await fetch('assets/Api/addProduct.php', {
             method: 'POST',
             body: formData
         });
-        
+
+        console.log('📥 Réponse HTTP:', response.status, response.statusText);
+
         // Récupère la réponse du serveur
         const result = await response.json();
-        
+
+        console.log('📋 Résultat JSON:', result);
+
         if (result.success) {
-            alert('Produit ajouté avec succès');
-            loadProducts();  // Recharge la liste
+            console.log('✅ Produit ajouté avec succès:', result);
+            alert('✅ Produit ajouté avec succès');
+            // Réinitialiser les champs du formulaire
+            $('np-code').value = '';
+            $('np-name').value = '';
+            $('np-category').value = '';
+            $('np-buy').value = '';
+            $('np-sale').value = '';
+            $('np-alert').value = '10';
+            $('np-initial').value = '0';
+
+            // Fermer la modale
+            const modalElement = $('modalNewProduct');
+            if (modalElement) {
+                modalElement.classList.remove('show');
+            }
+
+            // Recharger les données
+            loadProducts();
+            loadHistory();
+            loadAlerts();
+  console.log('✅ Produit ajouté avec succès:', result);
+            alert('✅ Produit ajouté avec succès');
             return true;
+
         } else {
-            alert('Erreur: ' + result.message);
+            alert('❌ Erreur: ' + result.message);
+            console.error('Erreur API:', result);
             return false;
         }
     } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur lors de l\'enregistrement');
+        console.error('❌ Erreur complète:', error);
+        console.error('Stack:', error.stack);
+        alert('❌ Erreur lors de l\'enregistrement: ' + error.message);
         return false;
     }
 }
@@ -419,7 +561,7 @@ async function saveProduct(code, name, category, buyPrice, salePrice, alertThres
  * @param {string} ref - Numéro de référence (bon de commande, facture)
  * @param {string} notes - Notes supplémentaires
  * @returns {boolean} - true si succès, false si erreur
- * 
+ *
  * Explication:
  * - Ajoute une ligne dans la table 'movements'
  * - Met à jour la quantité du produit dans le dépôt
@@ -427,36 +569,87 @@ async function saveProduct(code, name, category, buyPrice, salePrice, alertThres
  * - Rafraîchit tous les affichages
  */
 async function saveMovement(productId, depot, qty, ref, notes) {
+    // ===== VALIDATIONS SÉCURISÉES =====
+
+    if (productId <= 0) {
+        alert('❌ Erreur: Veuillez sélectionner un produit');
+        return false;
+    }
+
+    if (!depot || depot.trim() === '') {
+        alert('❌ Erreur: Veuillez sélectionner un dépôt');
+        return false;
+    }
+
+    if (qty <= 0) {
+        alert('❌ Erreur: La quantité doit être supérieure à 0');
+        return false;
+    }
+
+    if (qty > 99999) {
+        alert('❌ Erreur: La quantité est trop élevée');
+        return false;
+    }
+
     const formData = new FormData();
-    formData.append('product_id', productId);
-    formData.append('depot', depot);
-    formData.append('quantity', qty);
-    formData.append('ref_number', ref);
-    formData.append('notes', notes);
+    formData.append('id_produit', productId);
+    formData.append('depot', depot.trim());
+    formData.append('quantite', parseInt(qty));
+    formData.append('numero_reference', ref.trim() || 'MANUAL');
+    formData.append('notes', notes.trim() || '');
 
     try {
-        const response = await fetch('../api/save_movement.php', {
+        console.log('📤 Entrée de stock:', {
+            id_produit: productId,
+            depot: depot,
+            quantite: qty,
+            numero_reference: ref,
+            notes: notes
+        });
+
+        const response = await fetch('assets/Api/addStockEntree.php', {
             method: 'POST',
             body: formData
         });
-        
+
+        console.log('📥 Réponse HTTP:', response.status, response.statusText);
+
         const result = await response.json();
-        
+
+        console.log('📋 Résultat JSON:', result);
+
         if (result.success) {
-            alert('Mouvement enregistré');
-            // Recharge tous les affichages concernés
+            console.log('✅ Entrée enregistrée:', result);
+            alert('✅ Entrée de stock enregistrée avec succès');
+
+            // Réinitialiser les champs du formulaire
+            $('as-product').value = '';
+            $('as-depot').value = '';
+            $('as-qty').value = '';
+            $('as-ref').value = '';
+            $('as-notes').value = '';
+
+            // Fermer la modale
+            const modalElement = $('modalAddStock');
+            if (modalElement) {
+                modalElement.classList.remove('show');
+            }
+
+            // Recharger les données
             loadProducts();
             loadMovements();
             loadAlerts();
             loadHistory();
             return true;
         } else {
-            alert('Erreur: ' + result.message);
+            alert('❌ Erreur: ' + result.message);
+            console.error('Erreur API:', result);
             return false;
         }
     } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur lors de l\'enregistrement');
+        console.error('❌ Erreur complète:', error);
+        console.error('Stack:', error.stack);
+        alert('❌ Erreur lors de l\'enregistrement: ' + error.message);
         return false;
     }
 }
@@ -469,9 +662,10 @@ async function saveMovement(productId, depot, qty, ref, notes) {
  * @param {number} capacity - Capacité en m³
  * @param {string} manager - Responsable du dépôt
  * @returns {boolean} - true si succès, false si erreur
- * 
+ *
  * Explication: Ajoute une nouvelle zone de stockage à la base de données
  */
+/*
 async function saveDepot(name, type, location, capacity, manager) {
     const formData = new FormData();
     formData.append('name', name);
@@ -485,9 +679,9 @@ async function saveDepot(name, type, location, capacity, manager) {
             method: 'POST',
             body: formData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             alert('Dépôt créé');
             loadDepots();  // Recharge la liste
@@ -502,25 +696,27 @@ async function saveDepot(name, type, location, capacity, manager) {
         return false;
     }
 }
+*/
 
 /**
  * Supprime un produit de la base de données
  * @param {number} id - ID du produit à supprimer
  * @returns {boolean} - true si succès, false si erreur
- * 
+ *
  * Explication:
  * - Demande une confirmation à l'utilisateur
  * - Envoie une requête DELETE au serveur
  * - Recharge la liste des produits
  */
+/*
 async function deleteProduct(id) {
     // Demande confirmation avant de supprimer
     if (!confirm('Confirmer la suppression ?')) return false;
-    
+
     try {
         const response = await fetch(`../api/delete_product.php?id=${id}`);
         const result = await response.json();
-        
+
         if (result.success) {
             alert('Produit supprimé');
             loadProducts();  // Recharge la liste
@@ -534,20 +730,35 @@ async function deleteProduct(id) {
         return false;
     }
 }
+*/
 
 // ===== INITIALISATION ET ÉVÉNEMENTS =====
 
 /**
  * Code exécuté au chargement de la page
- * Explication: 
+ * Explication:
  * - Charge les données depuis la base de données
  * - Configure tous les événements (clics, changements)
  * - Active les onglets et modales
  */
+// Dans script_stock.js
+function updateProductSelect() {
+    const sel = $('as-product');
+    sel.innerHTML = '<option value="">-- Sélectionner --</option>';
+
+    // Ajoute chaque produit à la liste
+    products.forEach(p => {
+        sel.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
+    });
+}
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     // Affiche l'année actuelle au pied de page
     $('year').textContent = new Date().getFullYear();
 
+    // ⚠️ COMMENTÉ POUR TEST - Utilisez les formulaires PHP directement
     // Charge toutes les données depuis la base de données
     loadProducts();
     loadDepots();
@@ -563,59 +774,59 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
             // Active l'onglet cliqué
             btn.classList.add('active');
-            
+
             // Récupère le nom de l'onglet
             const tabName = btn.dataset.tab;
-            
+
             // Masque tous les contenu des onglets
             document.querySelectorAll('[role="tabpanel"]').forEach(p => p.style.display = 'none');
             // Affiche le contenu de l'onglet sélectionné
             $('tab-' + tabName).style.display = 'block';
-            
+
             // Recharge l'historique si c'est l'onglet historique
             if (tabName === 'history') loadHistory();
-        }); 
+        });
     });
 
     // ===== GESTION DES MODALES (FENÊTRES POP-UP) =====
-    
+
     /**
      * Ouvre une modale en ajoutant la classe 'show'
      * @param {string} id - ID de la modale
      */
-    function openModal(id) { 
-        $(id).classList.add('show'); 
+    function openModal(id) {
+        $(id).classList.add('show');
     }
-    
+
     /**
      * Ferme une modale en supprimant la classe 'show'
      * @param {string} id - ID de la modale
      * Explication: Réinitialise aussi tous les champs du formulaire
      */
-    function closeModal(id) { 
+    function closeModal(id) {
         $(id).classList.remove('show');
         // Vide tous les champs du formulaire
         const inputs = $(id).querySelectorAll('input, textarea, select');
         inputs.forEach(inp => inp.value = '');
     }
-    
+
     // Boutons de fermeture des modales
     document.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', () => closeModal(btn.dataset.close));
     });
-    
+
     // Ferme la modale en cliquant en dehors
     document.querySelectorAll('.modal').forEach(m => {
-        m.addEventListener('click', e => { 
-            if (e.target === m) closeModal(m.id); 
+        m.addEventListener('click', e => {
+            if (e.target === m) closeModal(m.id);
         });
     });
 
     // ===== ÉVÉNEMENTS DES BOUTONS =====
-    
+
     // Bouton: Ajouter un produit
     $('btn-new-product').addEventListener('click', () => openModal('modalNewProduct'));
-    
+
     // Bouton: Sauvegarder le nouveau produit
     $('np-save').addEventListener('click', async () => {
         const code = $('np-code').value.trim();
@@ -628,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Vérifie que les champs obligatoires sont remplis
         if (!code || !name) return alert('Remplissez au moins code et désignation');
-        
+
         // Enregistre le produit et ferme la modale si succès
         if (await saveProduct(code, name, category, buy, sale, alert, initial)) {
             closeModal('modalNewProduct');
@@ -637,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Bouton: Ajouter du stock (entrée)
     $('btn-add-stock').addEventListener('click', () => openModal('modalAddStock'));
-    
+
     // Bouton: Sauvegarder l'entrée de stock
     $('as-save').addEventListener('click', async () => {
         const productId = $('as-product').value;
@@ -659,11 +870,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Explication: Réinitialise tous les stocks à 0 pour recompter physiquement
     $('btn-inventory').addEventListener('click', async () => {
         if (!confirm('Lancer inventaire ? (Tous les stocks seront réinitialisés)')) return;
-        
+
         try {
             const response = await fetch('../api/start_inventory.php', {method: 'POST'});
             const result = await response.json();
-            
+
             if (result.success) {
                 alert('Inventaire lancé');
                 loadProducts();
@@ -678,7 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Bouton: Créer un nouveau dépôt
     $('btn-new-depot').addEventListener('click', () => openModal('modalNewDepot'));
-    
+
     // Bouton: Sauvegarder le nouveau dépôt
     $('nd-save').addEventListener('click', async () => {
         const name = $('nd-name').value.trim();
@@ -700,31 +911,31 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-export').addEventListener('click', () => {
         // Crée un texte au format CSV (colonnes séparées par ;)
         let csv = 'Code;Produit;Catégorie;Prix A;Prix V;Principal;Reserve;Vitrine;Total;État\n';
-        
+
         // Ajoute chaque produit dans le CSV
         products.forEach(p => {
             const total = getTotalStock(p.id);
             const state = getProductState(p.id);
             csv += `${p.code};${p.name};${p.category};${p.buy_price};${p.sale_price};${p.depot_principal};${p.depot_reserve};${p.depot_vitrine};${total};${state}\n`;
         });
-        
+
         // Télécharge le fichier
         const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; 
+        a.href = url;
         a.download = 'stock_' + new Date().getTime() + '.csv';  // Nom avec timestamp
         a.click();
         URL.revokeObjectURL(url);
     });
 
     // ===== ÉVÉNEMENTS DE RECHERCHE ET FILTRES =====
-    
+
     // Recherche en temps réel
     $('search').addEventListener('input', e => {
         renderProducts(e.target.value, $('filter-state').value, $('filter-depot').value);
     });
-    
+
     // Filtre par état (ok, low, critical)
     $('filter-state').addEventListener('change', e => {
         renderProducts($('search').value, e.target.value, $('filter-depot').value);
@@ -741,4 +952,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
