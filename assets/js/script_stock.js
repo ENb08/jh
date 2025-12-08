@@ -746,7 +746,7 @@ function updateProductSelect() {
     const sel = $('as-product');
     sel.innerHTML = '<option value="">-- Sélectionner --</option>';
 
-    // Ajoute chaque produit à la liste
+    // Ajoute chaque produit à la liste 
     products.forEach(p => {
         sel.innerHTML += `<option value="${p.id}">${p.code} - ${p.name}</option>`;
     });
