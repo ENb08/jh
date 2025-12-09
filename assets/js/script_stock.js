@@ -74,7 +74,7 @@ function getTotalStock(id) {
  * (RESTITUÉ)
  */
 function updateProductSelect() {
-    const select = $('as-product-id');
+    const select = $('id_produit');
     select.innerHTML = '<option value="">-- Sélectionner un produit --</option>';
 
     products.forEach(p => {
@@ -142,7 +142,7 @@ function renderProducts(searchText = '', filterState = '', filterDepot = '') {
             <td>${formatMoney(p.buy_price)}</td>
             <td>${formatMoney(p.sale_price)}</td>
             <td style="text-align:center;font-weight:600">${p.depot_principal || 0}</td>
-            
+
             <td style="text-align:center">${p.depot_vitrine || 0}</td>
             <td>${state === 'ok' ? '<span class="badge ok">En stock</span>' : state === 'low' ? '<span class="badge low">Bas</span>' : '<span class="badge critical">Rupture</span>'}</td>
             <td>
@@ -270,6 +270,76 @@ async function saveProduct(code, name, category, buyPrice, salePrice, alertThres
  * Enregistre une entrée de stock (Ajout de Stock)
  * (RESTITUÉ)
  */
+
+async function addStockEntree(e) {
+    e.preventDefault();
+
+    // ... (Récupération et validation des données - Étape 1 à 4) ...
+
+    // 5. Préparation de l'envoi (Rappel des variables du POST)
+    const formData = new FormData();
+    formData.append('id_produit', id_produit);
+    formData.append('quantite', quantite);
+    formData.append('numero_reference', numero_reference);
+    formData.append('notes', notes);
+
+    // NOUVEAU : Vérifiez si les données sont bien dans le FormData
+    console.log('Données prêtes à être envoyées:');
+    for (var pair of formData.entries()) {
+        console.log(pair[0]+ ': ' + pair[1]);
+    }
+
+    // 6. Envoi au serveur
+    try {
+        const response = await fetch('assets/Api/addStockEntree.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        // NOUVEAU : Vérification de l'état HTTP (très important !)
+        if (!response.ok) {
+            // Cela gère les erreurs 404, 500, 401, etc.
+            const errorText = await response.text();
+            throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        // ... (Reste du traitement result.success/result.message) ...
+
+    } catch (error) {
+        // Cette section capture toutes les erreurs (réseau, HTTP, JSON parsing)
+        console.error('Erreur Critique lors de l\'enregistrement:', error);
+        alert('❌ Une erreur est survenue. Consultez la console (F12) pour plus de détails.');
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 async function saveMovement(productId, quantity, depot, newBuyPrice, newSalePrice, note) {
     // ===== VALIDATIONS DU MOUVEMENT DE STOCK =====
     if (!productId) {
@@ -306,12 +376,12 @@ async function saveMovement(productId, quantity, depot, newBuyPrice, newSalePric
             return false;
         }
     }
-    
+
     if (note.length > 255) {
         alert('❌ Erreur: La note ne doit pas dépasser 255 caractères.');
         return false;
     }
-    
+
     // Création du FormData pour l'API
     const formData = new FormData();
     formData.append('product_id', productId);
@@ -334,7 +404,7 @@ async function saveMovement(productId, quantity, depot, newBuyPrice, newSalePric
 
         if (result.success) {
             alert(`✅ Entrée de ${q} unités enregistrée avec succès.`);
-            
+
             // Réinitialisation et fermeture
             $('as-product-id').value = '';
             $('as-quantity').value = '1';
@@ -342,7 +412,7 @@ async function saveMovement(productId, quantity, depot, newBuyPrice, newSalePric
             $('as-new-sale-price').value = '';
             $('as-note').value = '';
             $('modalAddStock').classList.remove('show');
-            
+
             // Masquer le panneau d'info
             $('as-product-info').style.display = 'none';
 
@@ -452,39 +522,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Changement de produit dans la modale d'ajout de stock (RESTITUÉ)
-    $('as-product-id').addEventListener('change', e => {
-        renderAddStockInfo(e.target.value);
+    // $('as-product-id').addEventListener('change', e => {
+    //     renderAddStockInfo(e.target.value);
+    // });
+
+    // // Bouton: Enregistrer l'entrée de stock (RESTITUÉ)
+    // $('as-save').addEventListener('click', async (e) => {
+    //     e.preventDefault();
+    //     const productId = $('as-product-id').value;
+    //     const quantity = $('as-quantity').value;
+    //     const depot = $('as-depot').value;
+    //     const newBuyPrice = $('as-new-buy-price').value;
+    //     const newSalePrice = $('as-new-sale-price').value;
+    //     const note = $('as-note').value;
+
+    //     await saveMovement(productId, quantity, depot, newBuyPrice, newSalePrice, note);
+    // });
+
+    // // ===== ÉVÉNEMENTS DE RECHERCHE ET FILTRES (Conservés pour l'affichage du catalogue) =====
+
+    // // Recherche en temps réel
+    // $('search').addEventListener('input', e => {
+    //     renderProducts(e.target.value, $('filter-state').value, $('filter-depot').value);
+    // });
+
+    // // Filtre par état (ok, low, critical)
+    // $('filter-state').addEventListener('change', e => {
+    //     renderProducts($('search').value, e.target.value, $('filter-depot').value);
+    // });
+
+    // // Filtre par dépôt
+    // $('filter-depot').addEventListener('change', e => {
+    //     renderProducts($('search').value, $('filter-state').value, e.target.value);
+    // });
+
+
+// Remplacez le bloc d'écouteurs problématique par ceci :
+
+// 1. Bouton d'ouverture de la modale d'ajout de stock
+const btnOpenStock = document.getElementById('btn-add-stock');
+if (btnOpenStock) {
+    btnOpenStock.addEventListener('click', () => {
+        // La fonction updateProductSelect doit maintenant cibler #id_produit
+        if (typeof updateProductSelect === 'function') updateProductSelect();
+        const modal = document.getElementById('modalAddStock');
+        if (modal) {
+            modal.classList.add('show');
+        }
     });
+}
 
-    // Bouton: Enregistrer l'entrée de stock (RESTITUÉ)
-    $('as-save').addEventListener('click', async (e) => {
-        e.preventDefault();
-        const productId = $('as-product-id').value;
-        const quantity = $('as-quantity').value;
-        const depot = $('as-depot').value;
-        const newBuyPrice = $('as-new-buy-price').value;
-        const newSalePrice = $('as-new-sale-price').value;
-        const note = $('as-note').value;
+// 2. Soumission du formulaire (Ceci active la fonction addStockEntree)
+const formStock = document.getElementById('formAddStock');
+// ⚠️ VÉRIFICATION ESSENTIELLE : Si l'ID 'formAddStock' n'est pas dans votre HTML, cette ligne est la cause de l'erreur 525.
+if (formStock) {
+    // S'assurer que la fonction addStockEntree existe
+    if (typeof addStockEntree === 'function') {
+        formStock.removeAttribute('action'); // S'assure que le JS prend le contrôle
+        formStock.addEventListener('submit', addStockEntree);
+    } else {
+        console.error("La fonction addStockEntree n'est pas définie.");
+    }
+}
 
-        await saveMovement(productId, quantity, depot, newBuyPrice, newSalePrice, note);
-    });
 
-    // ===== ÉVÉNEMENTS DE RECHERCHE ET FILTRES (Conservés pour l'affichage du catalogue) =====
 
-    // Recherche en temps réel
-    $('search').addEventListener('input', e => {
-        renderProducts(e.target.value, $('filter-state').value, $('filter-depot').value);
-    });
-
-    // Filtre par état (ok, low, critical)
-    $('filter-state').addEventListener('change', e => {
-        renderProducts($('search').value, e.target.value, $('filter-depot').value);
-    });
-
-    // Filtre par dépôt
-    $('filter-depot').addEventListener('change', e => {
-        renderProducts($('search').value, $('filter-state').value, e.target.value);
-    });
 
     // ===== ÉVÉNEMENTS DÉLÉGUÉS DU TABLEAU (Simplifié) =====
     document.body.addEventListener('click', async e => {
@@ -493,4 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('La fonction de suppression est désactivée.');
         }
     });
+// ... À l'intérieur du bloc DOMContentLoaded ...
+
+
 });

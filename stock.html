@@ -16,20 +16,20 @@
     <div class="app">
         <aside class="sidebar" aria-label="Navigation principale">
             <div class="brand">
-                <div class="logo">SP</div>
+                <div class="logo">JH</div>
                 <div>
-                    <div style="font-weight:700">SuperMarket Pro</div>
+                    <div style="font-weight:700">Jeremie Humble</div>
                     <div style="font-size:12px;color:var(--muted)">Stock & Dépôts</div>
                 </div>
             </div>
 
             <nav>
                 <a href="acceuil.html" class="menu-item"><i class="fas fa-home"></i> Tableau de Bord</a>
-                <a href="pos.html" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
+                <a href="#" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
                 <a href="stock.html" class="menu-item active"><i class="fas fa-box"></i> Gestion Stock</a>
             </nav>
 
-            <div class="small">© <span id="year"></span> SuperMarket Pro</div>
+            <div class="small">© <span id="year"></span> </div>
         </aside>
 
         <main class="main" role="main">
@@ -263,25 +263,17 @@
                 <!-- Sélection du produit -->
                 <div class="form-row full">
                     <div class="form-label">Produit <span class="required">*</span></div>
-                    <select id="as-product-id" class="input" name="produit" required>
+                    <select id="id_produit"  class="input" name="id_produit" required>
                         <option value="">-- Sélectionner un produit --</option>
                     </select>
                 </div>
 
                 <!-- Ligne 2: Dépôt et Quantité -->
                 <div class="form-row">
-                    <div>
-                        <div class="form-label">Dépôt destination <span class="required">*</span></div>
-                        <select id="as-depot" class="input" required>
-                            <option value="">-- Sélectionner --</option>
-                            <option value="principal">Principal</option>
-                            <option value="reserve">Réserve</option>
-                            <option value="vitrine">Vitrine</option>
-                        </select>
-                    </div>
+
                     <div>
                         <div class="form-label">Quantité <span class="required">*</span></div>
-                        <input id="as-qty" class="input" type="number" placeholder="0" step="1" min="1" required />
+                        <input id="as-qty" name="quantite" class="input" type="number" placeholder="0" step="1" min="1" required />
                     </div>
                 </div>
 
@@ -289,18 +281,18 @@
                 <div class="form-row">
                     <div>
                         <div class="form-label">Date d'entrée <span class="required">*</span></div>
-                        <input id="as-date" class="input" type="date" required />
+                        <input id="as-date" name="date_entre" class="input" type="date" required />
                     </div>
                     <div>
                         <div class="form-label">Numéro de Bon <span class="required">*</span></div>
-                        <input id="as-ref" class="input" placeholder="Bon de commande, facture..." required />
+                        <input id="as-ref" name="numero_reference" class="input" placeholder="Bon de commande, facture..." required />
                     </div>
                 </div>
 
                 <!-- Ligne 4: Notes -->
                 <div class="form-row full">
                     <div class="form-label">Notes / Observations</div>
-                    <textarea id="as-notes" class="input" placeholder="Remarques, problèmes détectés, conditions..." style="min-height:80px;resize:vertical"></textarea>
+                    <textarea id="as-notes" name="notes" class="input" placeholder="Remarques, problèmes détectés, conditions..." style="min-height:80px;resize:vertical"></textarea>
                 </div>
 
                 <!-- Ligne 5: Informations du produit (affichage) -->
@@ -308,7 +300,7 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:14px;">
                         <div>
                             <span style="color:#666">Prix Achat:</span>
-                            <div style="font-weight:600;font-size:16px;color:var(--accent)" id="as-buy-price">0.00 €</div>
+                            <div style="font-weight:600;font-size:16px;color:var(--accent)" id="as-buy-price">0.00 fc</div>
                         </div>
                         <div>
                             <span style="color:#666">Stock Actuel:</span>
@@ -325,7 +317,7 @@
                     <button type="button" class="btn secondary" data-close="modalAddStock">
                         <i class="fas fa-times"></i> Annuler
                     </button>
-                    <button type="submit" class="btn success">
+                    <button type="submit" class="btn success" id="btn-add-stock">
                         <i class="fas fa-check"></i> Enregistrer Entrée
                     </button>
                 </div>
