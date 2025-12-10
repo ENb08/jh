@@ -115,22 +115,22 @@ if ($entreeStmt) {
 }
 
 
-// --- RÉPONSE SUCCÈS ---
+// Fichier : assets/api/addStockEntree.php
 
-echo json_encode([
-    'success' => true,
-    'message' => 'Entrée de stock enregistrée avec succès',
-    'data' => [
-        'id_produit' => $id_produit,
-        'nom_produit' => $nom_produit,
+try {
+$conn->commit();
+$message = urlencode("✅ Entrée de stock enregistrée avec succès...");
 
-        'quantite' => $quantite,
-        'numero_reference' => $numero_reference,
-        'notes' => $notes,
-        'date' => date('Y-m-d H:i:s')
-    ]
-]);
+// ➡️ CORRECTION ICI : Utilisation du chemin absolu /stock.html
+header("Location: ../../stock.html?status=success&msg=" . $message);
+exit; 
 
-$conn->close();
-exit; // ✅ CRITIQUE : Arrête le script pour garantir un JSON propre
+} catch (Exception $e) {
+    // ...
+    $message = urlencode("❌ Erreur: " . $e->getMessage());
+
+    // ➡️ CORRECTION ICI : Utilisation du chemin absolu /stock.html
+    header("Location: http://localhost/j_humble/stock.html?status=error&msg=" . $message);
+    exit;
+}
 ?>
