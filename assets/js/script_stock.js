@@ -3,12 +3,20 @@ let products = [];      // Liste de tous les produits
 let depots = [];        // Laissé pour éviter les erreurs, mais non utilisé
 let movements = [];      // Laissé pour éviter les erreurs, mais non utilisé
 let history = [];       // Laissé pour éviter les erreurs, mais non utilisé
+let magasinStock = [];  // Stock du magasin 1
+let magasinSummary = {}; // Résumé des statistiques du magasin
 
 // ===== UTILITAIRES RACCOURCIS =====
 const $ = id => document.getElementById(id);
 
 // Fonction pour formater un nombre en format monétaire français (ex: 10.50 €)
 const formatMoney = v => parseFloat(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+
+// Fonction pour formater en CDF
+const formatCDF = v => parseFloat(v).toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' FC';
+
+// Fonction pour formater en USD
+const formatUSD = v => '$' + parseFloat(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 
 // ===== APPELS API (REQUÊTES À LA BASE DE DONNÉES) =====
 
@@ -37,11 +45,106 @@ async function loadProducts() {
     updateProductSelect();      // RESTITUÉ : Met à jour la liste déroulante d'ajout de stock
 }
 
+/**
+ * Recherche de produits avec filtres (API côté serveur)
+ * Alternative à la recherche côté client dans renderProducts
+ */
+async function searchProducts(searchText = '', filterState = '', filterDepot = '') {
+    const params = new URLSearchParams();
+    if (searchText) params.append('search', searchText);
+    if (filterState) params.append('state', filterState);
+    if (filterDepot) params.append('depot', filterDepot);
+
+    const data = await fetchData(`searchProducts.php?${params.toString()}`);
+    if (data && data.success) {
+        products = data.products;
+        renderProducts(searchText, filterState, filterDepot);
+    }
+}
+
 // Fonctions laissées pour la compatibilité avec loadProducts, mais sans corps
 async function loadDepots() {}
-async function loadMovements() {}
+
+/**
+ * Charge le stock du Magasin 1
+ */
+async function loadMagasinStock() {
+    const data = await fetchData('getMagasinStock.php');
+    if (data) {
+        magasinStock = data.products || [];
+        magasinSummary = data.summary || {};
+        renderMagasinStock();
+        updateMagasinStats();
+    }
+}
+
+/**
+ * Charge tous les mouvements depuis la base de données
+ */
+async function loadMovements() {
+    const data = await fetchData('getMovements.php');
+    if (data) {
+        movements = data;
+        renderMovements();
+    }
+}
+
 async function loadHistory() {}
-async function loadAlerts() {}
+
+/**
+ * Charge et affiche les alertes de stock
+ */
+async function loadAlerts() {
+    const alertsList = $('alertsList');
+    if (!alertsList) return;
+
+    alertsList.innerHTML = '';
+
+    // Générer les alertes basées sur les produits
+    products.forEach(p => {
+        const totalStock = getTotalStock(p.id);
+        const threshold = parseInt(p.alert_threshold) || 5;
+
+        if (totalStock === 0) {
+            const alert = createAlertElement('critical', p.name, `Rupture de stock (Stock: 0)`, p.id);
+            alertsList.appendChild(alert);
+        } else if (totalStock <= threshold) {
+            const alert = createAlertElement('warning', p.name, `Stock bas (Stock: ${totalStock}, Seuil: ${threshold})`, p.id);
+            alertsList.appendChild(alert);
+        }
+    });
+
+    if (alertsList.children.length === 0) {
+        alertsList.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">✅ Aucune alerte. Tous les stocks sont corrects.</div>';
+    }
+}
+
+/**
+ * Crée un élément d'alerte
+ */
+function createAlertElement(type, productName, message, productId) {
+    const div = document.createElement('div');
+    div.className = `alert-item alert-${type}`;
+    div.style.cssText = 'padding:12px;border-left:4px solid;border-radius:4px;background:#f9f9f9;';
+
+    if (type === 'critical') {
+        div.style.borderLeftColor = 'var(--danger)';
+    } else {
+        div.style.borderLeftColor = 'var(--warning)';
+    }
+
+    div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <strong>${productName}</strong>
+                <div style="font-size:13px;color:#666;margin-top:4px;">${message}</div>
+            </div>
+            <i class="fas fa-${type === 'critical' ? 'exclamation-circle' : 'exclamation-triangle'}" style="color:${type === 'critical' ? 'var(--danger)' : 'var(--warning)'};font-size:20px;"></i>
+        </div>
+    `;
+
+    return div;
+}
 
 // ===== FONCTIONS UTILITAIRES DE LOGIQUE (Nécessaires pour renderProducts) =====
 
@@ -108,13 +211,37 @@ function renderAddStockInfo(productId) {
 }
 
 /**
+ * Met à jour la liste déroulante de sélection des produits dans la modale de nouveau mouvement
+ */
+function updateProductSelectForMovement() {
+    const select = $('nm-product');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">-- Sélectionner un produit --</option>';
+
+    products.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `[${p.code}] ${p.name} (Stock: ${getTotalStock(p.id)})`;
+        select.appendChild(option);
+    });
+}
+
+/**
  * Affiche la liste des produits dans le tableau
+ * TAUX DE CONVERSION: 1 USD = 2500 CDF
+ * - Les prix stockés en BD sont en CDF
+ * - Conversion USD = Prix CDF / 2500
+ * - Exemple: 5000 CDF = 5000 / 2500 = 2.00 USD
  */
 function renderProducts(searchText = '', filterState = '', filterDepot = '') {
     const tbody = $('productsTable');
     tbody.innerHTML = '';
 
-    let total = 0, value = 0, low = 0, critical = 0;
+    // Taux de conversion CDF vers USD (même taux que dans getMagasinStock.php)
+    const TAUX_USD = 2400; // 1 USD = 2500 CDF
+
+    let total = 0, valueCDF = 0, low = 0, critical = 0;
 
     products.forEach(p => {
         const matchSearch = searchText === '' ||
@@ -129,21 +256,33 @@ function renderProducts(searchText = '', filterState = '', filterDepot = '') {
 
         total++;
         const totalStock = getTotalStock(p.id);
-        // Assurez-vous que buy_price est traité comme un nombre
-        value += totalStock * parseFloat(p.buy_price || 0);
+        const prixAchat = parseFloat(p.buy_price || 0);
+        const prixVente = parseFloat(p.sale_price || 0);
+
+        // Calcul de la valeur totale en CDF
+        valueCDF += totalStock * prixAchat;
+
         if (state === 'critical') critical++;
         if (state === 'low') low++;
+
+        // Conversion des prix en USD
+        const prixAchatUSD = prixAchat / TAUX_USD;
+        const prixVenteUSD = prixVente / TAUX_USD;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.code}</strong></td>
             <td>${p.name}</td>
             <td><span class="badge info">${p.category}</span></td>
-            <td>${formatMoney(p.buy_price)}</td>
-            <td>${formatMoney(p.sale_price)}</td>
+            <td>
+                <div>${formatCDF(prixAchat)}</div>
+                <small style="color:#666;">${formatUSD(prixAchatUSD)}</small>
+            </td>
+            <td>
+                <div>${formatCDF(prixVente)}</div>
+                <small style="color:#666;">${formatUSD(prixVenteUSD)}</small>
+            </td>
             <td style="text-align:center;font-weight:600">${p.depot_principal || 0}</td>
-
-            <td style="text-align:center">${p.depot_vitrine || 0}</td>
             <td>${state === 'ok' ? '<span class="badge ok">En stock</span>' : state === 'low' ? '<span class="badge low">Bas</span>' : '<span class="badge critical">Rupture</span>'}</td>
             <td>
                 <i class="fas fa-edit" data-edit="${p.id}" style="cursor:pointer;margin-right:8px" title="Modifier"></i>
@@ -153,13 +292,176 @@ function renderProducts(searchText = '', filterState = '', filterDepot = '') {
         tbody.appendChild(tr);
     });
 
+    // Calcul de la valeur totale en USD
+    const valueUSD = valueCDF / TAUX_USD;
+
     // Met à jour les statistiques affichées
     $('stat-total').textContent = products.length;
-    $('stat-value').textContent = formatMoney(
-        products.reduce((s, p) => s + getTotalStock(p.id) * parseFloat(p.buy_price || 0), 0)
-    );
+
+    // Affichage de la valeur en CDF et USD
+    const statValueElement = $('stat-value');
+    if (statValueElement) {
+        statValueElement.innerHTML = `
+            <div>${formatCDF(valueCDF)}</div>
+            <small style="font-size:12px;font-weight:normal;">${formatUSD(valueUSD)}</small>
+        `;
+    }
+
     $('stat-low').textContent = products.filter(p => getProductState(p.id) === 'low').length;
     $('stat-critical').textContent = products.filter(p => getProductState(p.id) === 'critical').length;
+}
+
+/**
+ * Affiche la liste des mouvements dans le tableau
+ */
+function renderMovements() {
+    const tbody = $('movementsTable');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (movements.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#666;">Aucun mouvement enregistré</td></tr>';
+        return;
+    }
+
+    movements.forEach(m => {
+        const tr = document.createElement('tr');
+
+        // Déterminer le type de badge et l'icône
+        let typeLabel = '';
+        let typeClass = '';
+        let depotInfo = '';
+
+        switch(m.type) {
+            case 'entree':
+                typeLabel = '<span class="badge ok"><i class="fas fa-arrow-down"></i> Entrée</span>';
+                depotInfo = m.depot_to || '-';
+                break;
+            case 'sortie':
+                typeLabel = '<span class="badge warning"><i class="fas fa-arrow-up"></i> Sortie</span>';
+                depotInfo = m.depot_from || '-';
+                break;
+            case 'transfert':
+                typeLabel = '<span class="badge info"><i class="fas fa-exchange-alt"></i> Transfert</span>';
+                depotInfo = `${m.depot_from || '?'} → ${m.depot_to || '?'}`;
+                break;
+            case 'ajustement':
+                typeLabel = '<span class="badge"><i class="fas fa-balance-scale"></i> Ajustement</span>';
+                depotInfo = m.depot_from || '-';
+                break;
+            case 'retour':
+                typeLabel = '<span class="badge info"><i class="fas fa-undo"></i> Retour</span>';
+                depotInfo = m.depot_to || '-';
+                break;
+            case 'perte':
+                typeLabel = '<span class="badge critical"><i class="fas fa-times"></i> Perte/Casse</span>';
+                depotInfo = m.depot_from || '-';
+                break;
+            default:
+                typeLabel = `<span class="badge">${m.type}</span>`;
+                depotInfo = '-';
+        }
+
+        // Formater la date
+        const dateFormatted = new Date(m.date).toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+
+        tr.innerHTML = `
+            <td><small>${dateFormatted}</small></td>
+            <td>${typeLabel}</td>
+            <td><strong>${m.product_name || 'Produit inconnu'}</strong><br><small style="color:#666;">${m.product_code || ''}</small></td>
+            <td style="text-align:center;font-weight:600;">${m.variation >= 0 ? '+' : ''}${m.variation}</td>
+            <td><small>${depotInfo}</small></td>
+            <td><small>${m.reference || '-'}</small></td>
+            <td><small>${m.notes || '-'}</small></td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+/**
+ * Affiche le stock du Magasin 1
+ */
+function renderMagasinStock() {
+    const tbody = $('magasinTable');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (magasinStock.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#666;">Aucun produit disponible</td></tr>';
+        return;
+    }
+
+    // Afficher tous les produits
+    magasinStock.forEach(p => {
+        const tr = document.createElement('tr');
+
+        // Style différent pour les produits sans stock
+        const rowStyle = p.quantity_magasin <= 0 ? 'opacity:0.5;' : '';
+
+        tr.innerHTML = `
+            <td style="${rowStyle}"><strong>${p.code}</strong></td>
+            <td style="${rowStyle}">${p.name}</td>
+            <td style="${rowStyle}"><span class="badge info">${p.category}</span></td>
+            <td style="${rowStyle}">${formatCDF(p.price_cdf)}</td>
+            <td style="${rowStyle}">${formatUSD(p.price_usd)}</td>
+            <td style="text-align:center;font-weight:600;font-size:16px;${rowStyle}">
+                ${p.quantity_magasin > 0 ? p.quantity_magasin : '<span style="color:#999;">0</span>'}
+            </td>
+            <td style="font-weight:600;${rowStyle}">${p.quantity_magasin > 0 ? formatCDF(p.value_cdf) : '-'}</td>
+            <td style="font-weight:600;${rowStyle}">${p.quantity_magasin > 0 ? formatUSD(p.value_usd) : '-'}</td>
+            <td>
+                ${p.quantity_magasin > 0 ? `
+                    <i class="fas fa-minus-circle" data-reduce="${p.id}" style="cursor:pointer;color:var(--warning);margin-right:8px" title="Réduire"></i>
+                    <i class="fas fa-info-circle" data-info="${p.id}" style="cursor:pointer;color:var(--accent)" title="Détails"></i>
+                ` : `<i class="fas fa-plus-circle" data-appro="${p.id}" style="cursor:pointer;color:var(--success)" title="Approvisionner"></i>`}
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+/**
+ * Met à jour les statistiques du magasin
+ */
+function updateMagasinStats() {
+    if (!magasinSummary) return;
+
+    const totalItems = $('mag-total-items');
+    const valueCDF = $('mag-value-cdf');
+    const valueUSD = $('mag-value-usd');
+    const totalProducts = $('mag-total-products');
+
+    if (totalItems) totalItems.textContent = magasinSummary.total_items || 0;
+    if (valueCDF) valueCDF.textContent = formatCDF(magasinSummary.total_value_cdf || 0);
+    if (valueUSD) valueUSD.textContent = formatUSD(magasinSummary.total_value_usd || 0);
+    if (totalProducts) totalProducts.textContent = magasinSummary.total_products || 0;
+}
+
+/**
+ * Met à jour la liste déroulante pour l'approvisionnement du magasin
+ */
+function updateProductSelectForAppro() {
+    const select = $('am-product');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">-- Sélectionner un produit --</option>';
+
+    products.forEach(p => {
+        const stockPrincipal = parseInt(p.depot_principal || p.quantite_stock || 0);
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `[${p.code}] ${p.name} (Stock disponible: ${stockPrincipal})`;
+        option.setAttribute('data-stock', stockPrincipal);
+        select.appendChild(option);
+    });
 }
 
 // ===== FONCTIONS D'ENREGISTREMENT (SAVE) =====
@@ -271,48 +573,7 @@ async function saveProduct(code, name, category, buyPrice, salePrice, alertThres
  * (RESTITUÉ)
  */
 
-async function addStockEntree(e) {
-    e.preventDefault();
 
-    // ... (Récupération et validation des données - Étape 1 à 4) ...
-
-    // 5. Préparation de l'envoi (Rappel des variables du POST)
-    const formData = new FormData();
-    formData.append('id_produit', id_produit);
-    formData.append('quantite', quantite);
-    formData.append('numero_reference', numero_reference);
-    formData.append('notes', notes);
-
-    // NOUVEAU : Vérifiez si les données sont bien dans le FormData
-    console.log('Données prêtes à être envoyées:');
-    for (var pair of formData.entries()) {
-        console.log(pair[0]+ ': ' + pair[1]);
-    }
-
-    // 6. Envoi au serveur
-    try {
-        const response = await fetch('assets/Api/addStockEntree.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        // NOUVEAU : Vérification de l'état HTTP (très important !)
-        if (!response.ok) {
-            // Cela gère les erreurs 404, 500, 401, etc.
-            const errorText = await response.text();
-            throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
-        }
-
-        const result = await response.json();
-
-        // ... (Reste du traitement result.success/result.message) ...
-
-    } catch (error) {
-        // Cette section capture toutes les erreurs (réseau, HTTP, JSON parsing)
-        console.error('Erreur Critique lors de l\'enregistrement:', error);
-        alert('❌ Une erreur est survenue. Consultez la console (F12) pour plus de détails.');
-    }
-}
 
 
 
@@ -395,7 +656,7 @@ async function saveMovement(productId, quantity, depot, newBuyPrice, newSalePric
     formData.append('note', note.trim());
 
     try {
-        const response = await fetch('assets/Api/addStockEntree.php', {
+        const response = await fetch('assets/Api/addMovement.php', {
             method: 'POST',
             body: formData
         });
@@ -418,8 +679,8 @@ async function saveMovement(productId, quantity, depot, newBuyPrice, newSalePric
 
             // Recharger les données pour mettre à jour le catalogue
             loadProducts();
-            // loadMovements(); // Retiré
-            // loadHistory(); // Retiré
+            loadMovements();
+            loadAlerts();
             return true;
         } else {
             alert('❌ Erreur lors de l\'enregistrement du mouvement: ' + result.message);
@@ -443,9 +704,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Affiche l'année actuelle au pied de page
     $('year').textContent = new Date().getFullYear();
 
+    // Vérifier et afficher les messages d'alerte depuis l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const message = urlParams.get('msg');
+
+    if (status && message) {
+        const decodedMessage = decodeURIComponent(message);
+        alert(decodedMessage);
+
+        // Nettoyer l'URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Charge les produits et dépôts pour l'affichage initial du catalogue
     loadProducts();
-    // loadDepots(); // Les appels des autres fonctions de load ont été retirés
+    loadMovements();
+    loadAlerts();
+    loadMagasinStock();
 
     // ===== GESTION DES ONGLETS (Simplifié) =====
     document.querySelectorAll('.tab').forEach(btn => {
@@ -457,6 +733,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.querySelectorAll('[role="tabpanel"]').forEach(p => p.style.display = 'none');
             $('tab-' + tabName).style.display = 'block';
+
+            // Charger les données selon l'onglet
+            if (tabName === 'movements') {
+                loadMovements();
+            } else if (tabName === 'alerts') {
+                loadAlerts();
+            } else if (tabName === 'magasin') {
+                loadMagasinStock();
+            }
         });
     });
 
@@ -521,6 +806,45 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAddStockInfo($('as-product-id').value); // Pour initialiser/vider les infos
     });
 
+    // Bouton: Nouveau Mouvement
+    $('btn-new-movement').addEventListener('click', () => {
+        openModal('modalNewMovement');
+        updateProductSelectForMovement();
+    });
+
+    // Bouton: Approvisionner Magasin
+    $('btn-appro-magasin').addEventListener('click', () => {
+        openModal('modalApproMagasin');
+        updateProductSelectForAppro();
+    });
+
+    // Changement de produit dans l'approvisionnement magasin
+    $('am-product').addEventListener('change', (e) => {
+        const productId = e.target.value;
+        const infoPanel = $('am-product-info');
+
+        if (!productId) {
+            infoPanel.style.display = 'none';
+            return;
+        }
+
+        const product = products.find(p => p.id == productId);
+        const magProd = magasinStock.find(p => p.id == productId);
+
+        if (product) {
+            infoPanel.style.display = 'block';
+            const stockPrincipal = parseInt(product.depot_principal || product.quantite_stock || 0);
+            const stockMagasin = magProd ? magProd.quantity_magasin : 0;
+
+            $('am-stock-principal').textContent = stockPrincipal;
+            $('am-stock-magasin').textContent = stockMagasin;
+
+            // Limiter la quantité max au stock disponible
+            const qtyInput = $('am-qty');
+            qtyInput.max = stockPrincipal;
+        }
+    });
+
     // Changement de produit dans la modale d'ajout de stock (RESTITUÉ)
     // $('as-product-id').addEventListener('change', e => {
     //     renderAddStockInfo(e.target.value);
@@ -539,25 +863,51 @@ document.addEventListener('DOMContentLoaded', () => {
     //     await saveMovement(productId, quantity, depot, newBuyPrice, newSalePrice, note);
     // });
 
-    // // ===== ÉVÉNEMENTS DE RECHERCHE ET FILTRES (Conservés pour l'affichage du catalogue) =====
+    // ===== ÉVÉNEMENTS DE RECHERCHE ET FILTRES =====
 
-    // // Recherche en temps réel
-    // $('search').addEventListener('input', e => {
-    //     renderProducts(e.target.value, $('filter-state').value, $('filter-depot').value);
-    // });
+    // Recherche en temps réel
+    const searchInput = $('search');
+    if (searchInput) {
+        searchInput.addEventListener('input', e => {
+            const filterState = $('filter-state');
+            const filterDepot = $('filter-depot');
+            renderProducts(
+                e.target.value,
+                filterState ? filterState.value : '',
+                filterDepot ? filterDepot.value : ''
+            );
+        });
+    }
 
-    // // Filtre par état (ok, low, critical)
-    // $('filter-state').addEventListener('change', e => {
-    //     renderProducts($('search').value, e.target.value, $('filter-depot').value);
-    // });
+    // Filtre par état (ok, low, critical)
+    const filterState = $('filter-state');
+    if (filterState) {
+        filterState.addEventListener('change', e => {
+            const searchInput = $('search');
+            const filterDepot = $('filter-depot');
+            renderProducts(
+                searchInput ? searchInput.value : '',
+                e.target.value,
+                filterDepot ? filterDepot.value : ''
+            );
+        });
+    }
 
-    // // Filtre par dépôt
-    // $('filter-depot').addEventListener('change', e => {
-    //     renderProducts($('search').value, $('filter-state').value, e.target.value);
-    // });
+    // Filtre par dépôt
+    const filterDepot = $('filter-depot');
+    if (filterDepot) {
+        filterDepot.addEventListener('change', e => {
+            const searchInput = $('search');
+            const filterState = $('filter-state');
+            renderProducts(
+                searchInput ? searchInput.value : '',
+                filterState ? filterState.value : '',
+                e.target.value
+            );
+        });
+    }
 
-
-// Remplacez le bloc d'écouteurs problématique par ceci :
+// Bloc d'écouteurs pour les modales :
 
 // 1. Bouton d'ouverture de la modale d'ajout de stock
 const btnOpenStock = document.getElementById('btn-add-stock');
@@ -575,15 +925,15 @@ if (btnOpenStock) {
 // 2. Soumission du formulaire (Ceci active la fonction addStockEntree)
 const formStock = document.getElementById('formAddStock');
 // ⚠️ VÉRIFICATION ESSENTIELLE : Si l'ID 'formAddStock' n'est pas dans votre HTML, cette ligne est la cause de l'erreur 525.
-if (formStock) {
-    // S'assurer que la fonction addStockEntree existe
-    if (typeof addStockEntree === 'function') {
-        formStock.removeAttribute('action'); // S'assure que le JS prend le contrôle
-        formStock.addEventListener('submit', addStockEntree);
-    } else {
-        console.error("La fonction addStockEntree n'est pas définie.");
-    }
-}
+// if (formStock) {
+//     // S'assurer que la fonction addStockEntree existe
+//     if (typeof addStockEntree === 'function') {
+//         formStock.removeAttribute('action'); // S'assure que le JS prend le contrôle
+//         formStock.addEventListener('submit', addStockEntree);
+//     } else {
+//         console.error("La fonction addStockEntree n'est pas définie.");
+//     }
+// }
 
 
 

@@ -68,7 +68,7 @@
             <div class="tabs" role="tablist">
                 <button class="tab active" data-tab="products"><i class="fas fa-list"></i> Catalogue</button>
                 <button class="tab" data-tab="movements"><i class="fas fa-arrows-alt"></i> Mouvements</button>
-                <button class="tab" data-tab="depots"><i class="fas fa-map-marker-alt"></i> Dépôts</button>
+                <button class="tab" data-tab="magasin"><i class="fas fa-store"></i> Magasin 1</button>
                 <button class="tab" data-tab="alerts"><i class="fas fa-bell"></i> Alertes</button>
                 <button class="tab" data-tab="history"><i class="fas fa-history"></i> Historique</button>
             </div>
@@ -84,12 +84,6 @@
                         <option value="low">Stock Bas</option>
                         <option value="critical">Rupture</option>
                     </select>
-                    <select id="filter-depot" class="input" style="width:140px">
-                        <option value="">Tous les Dépôts</option>
-                        <option value="principal">Principal</option>
-                        <option value="reserve">Réserve</option>
-                        <option value="vitrine">Vitrine</option>
-                    </select>
                 </div>
 
                 <table aria-label="Catalogue produits">
@@ -100,9 +94,7 @@
                             <th>Catégorie</th>
                             <th>Prix A.</th>
                             <th>Prix V.</th>
-                            <th style="text-align:center">Dépôt Prin.</th>
-                            <th style="text-align:center">Réserve</th>
-                            <th style="text-align:center">Vitrine</th>
+                            <th style="text-align:center">Stock</th>
                             <th>État</th>
                             <th>Actions</th>
                         </tr>
@@ -135,26 +127,48 @@
                 </table>
             </section>
 
-            <!-- TAB: DEPOTS -->
-            <section id="tab-depots" class="panel" role="tabpanel" aria-labelledby="tab-depots" style="display:none">
+            <!-- TAB: MAGASIN 1 -->
+            <section id="tab-magasin" class="panel" role="tabpanel" aria-labelledby="tab-magasin" style="display:none">
                 <div class="panel-head">
-                    <h3>Gestion des Dépôts</h3>
-                    <button class="btn" id="btn-new-depot"><i class="fas fa-plus"></i> Nouveau dépôt</button>
+                    <h3><i class="fas fa-store"></i> Magasin 1 - Inventaire</h3>
+                    <button class="btn success" id="btn-appro-magasin"><i class="fas fa-truck"></i> Approvisionner</button>
                 </div>
 
-                <table aria-label="Liste des dépôts">
+                <!-- Statistiques du magasin -->
+                <div class="stats" style="margin-bottom:20px;">
+                    <div class="stat-card" style="border-left-color:var(--accent)">
+                        <h4>Total Produits</h4>
+                        <div class="value" id="mag-total-products">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color:var(--warning)">
+                        <h4>Total Articles</h4>
+                        <div class="value" id="mag-total-items">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color:var(--accent-2)">
+                        <h4>Valeur CDF</h4>
+                        <div class="value" id="mag-value-cdf">0 FC</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color:var(--success)">
+                        <h4>Valeur USD</h4>
+                        <div class="value" id="mag-value-usd">$0.00</div>
+                    </div>
+                </div>
+
+                <table aria-label="Stock Magasin 1">
                     <thead>
                         <tr>
-                            <th>Nom</th>
-                            <th>Localisation</th>
-                            <th>Type</th>
-                            <th>Capacité</th>
-                            <th>Articles</th>
-                            <th>Valeur</th>
+                            <th>Réf / Code</th>
+                            <th>Produit</th>
+                            <th>Catégorie</th>
+                            <th>Prix Unitaire (CDF)</th>
+                            <th>Prix Unitaire (USD)</th>
+                            <th style="text-align:center">Quantité</th>
+                            <th>Valeur CDF</th>
+                            <th>Valeur USD</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="depotsTable"></tbody>
+                    <tbody id="magasinTable"></tbody>
                 </table>
             </section>
 
@@ -259,7 +273,7 @@
                 <button class="modal-close" data-close="modalAddStock">&times;</button>
             </div>
 
-            <form id="formAddStock" >
+            <form id="formAddStock"  action="assets/Api/addStockEntree.php" method="post">
                 <!-- Sélection du produit -->
                 <div class="form-row full">
                     <div class="form-label">Produit <span class="required">*</span></div>
@@ -317,7 +331,7 @@
                     <button type="button" class="btn secondary" data-close="modalAddStock">
                         <i class="fas fa-times"></i> Annuler
                     </button>
-                    <button type="submit" class="btn success" id="btn-add-stock">
+                    <button type="submit" class="btn success">
                         <i class="fas fa-check"></i> Enregistrer Entrée
                     </button>
                 </div>
@@ -325,50 +339,153 @@
         </div>
     </div>
 
-    <!-- Modal: Nouveau Dépôt -->
-    <div class="modal" id="modalNewDepot">
+    <!-- Modal: Approvisionnement Magasin -->
+    <div class="modal" id="modalApproMagasin">
         <div class="modal-box">
             <div class="modal-header">
-                <h3>Nouveau Dépôt</h3>
-                <button class="modal-close" data-close="modalNewDepot">&times;</button>
+                <h3><i class="fas fa-truck"></i> Approvisionner Magasin 1</h3>
+                <button class="modal-close" data-close="modalApproMagasin">&times;</button>
             </div>
 
-            <div class="form-row">
-                <div>
-                    <div class="form-label">Nom</div>
-                    <input id="nd-name" class="input" placeholder="Ex: Réserve" />
-                </div>
-                <div>
-                    <div class="form-label">Type</div>
-                    <select id="nd-type" class="input">
-                        <option value="principal">Principal</option>
-                        <option value="reserve">Réserve</option>
-                        <option value="vitrine">Vitrine</option>
-                        <option value="autre">Autre</option>
+            <form id="formApproMagasin" action="assets/Api/approMagasin.php" method="post">
+                <!-- Sélection du produit -->
+                <div class="form-row full">
+                    <div class="form-label">Produit <span class="required">*</span></div>
+                    <select id="am-product" name="id_produit" class="input" required>
+                        <option value="">-- Sélectionner un produit --</option>
                     </select>
                 </div>
-            </div>
 
-            <div class="form-row full">
-                <div class="form-label">Localisation</div>
-                <input id="nd-location" class="input" placeholder="Adresse / Zone" />
-            </div>
-
-            <div class="form-row">
-                <div>
-                    <div class="form-label">Capacité (m³)</div>
-                    <input id="nd-capacity" class="input" type="number" placeholder="0" step="0.1" />
+                <!-- Quantité -->
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Quantité à transférer <span class="required">*</span></div>
+                        <input id="am-qty" name="quantite" class="input" type="number" placeholder="0" step="1" min="1" required />
+                    </div>
                 </div>
-                <div>
-                    <div class="form-label">Responsable</div>
-                    <input id="nd-manager" class="input" placeholder="Nom" />
+
+                <!-- Informations du produit -->
+                <div id="am-product-info" style="display:none;background:#f5f5f5;border-radius:6px;padding:12px;margin:12px 0;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:14px;">
+                        <div>
+                            <span style="color:#666">Stock Principal Disponible:</span>
+                            <div style="font-weight:600;font-size:16px;color:var(--accent-2)" id="am-stock-principal">0</div>
+                        </div>
+                        <div>
+                            <span style="color:#666">Stock Actuel Magasin:</span>
+                            <div style="font-weight:600;font-size:16px;color:var(--accent)" id="am-stock-magasin">0</div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Notes -->
+                <div class="form-row full">
+                    <div class="form-label">Notes / Observations</div>
+                    <textarea id="am-notes" name="notes" class="input" placeholder="Remarques..." style="min-height:60px;resize:vertical"></textarea>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+                    <button type="reset" class="btn secondary">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                    <button type="button" class="btn secondary" data-close="modalApproMagasin">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                    <button type="submit" class="btn success">
+                        <i class="fas fa-check"></i> Approvisionner
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Nouveau Mouvement -->
+    <div class="modal" id="modalNewMovement">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-exchange-alt"></i> Nouveau Mouvement de Stock</h3>
+                <button class="modal-close" data-close="modalNewMovement">&times;</button>
             </div>
 
-            <div style="display:flex;gap:8px;margin-top:16px">
-                <button class="btn" id="nd-save">Créer Dépôt</button>
-                <button class="btn secondary" data-close="modalNewDepot">Annuler</button>
-            </div>
+            <form id="formNewMovement" action="assets/Api/addMovement.php" method="post">
+                <!-- Type de mouvement -->
+                <div class="form-row full">
+                    <div class="form-label">Type de Mouvement <span class="required">*</span></div>
+                    <select id="nm-type" name="type_mouvement" class="input" required>
+                        <option value="">-- Sélectionner --</option>
+                        <option value="entree">Entrée de stock</option>
+                        <option value="sortie">Sortie de stock</option>
+                        <option value="transfert">Transfert entre dépôts</option>
+                        <option value="ajustement">Ajustement d'inventaire</option>
+                        <option value="retour">Retour fournisseur</option>
+                        <option value="perte">Perte / Casse</option>
+                    </select>
+                </div>
+
+                <!-- Sélection du produit -->
+                <div class="form-row full">
+                    <div class="form-label">Produit <span class="required">*</span></div>
+                    <select id="nm-product" name="id_produit" class="input" required>
+                        <option value="">-- Sélectionner un produit --</option>
+                    </select>
+                </div>
+
+                <!-- Quantité et Date -->
+                <div class="form-row">
+                    <div>
+                        <div class="form-label">Quantité <span class="required">*</span></div>
+                        <input id="nm-qty" name="quantite" class="input" type="number" placeholder="0" step="1" min="1" required />
+                    </div>
+                    <div>
+                        <div class="form-label">Date du mouvement <span class="required">*</span></div>
+                        <input id="nm-date" name="date_mouvement" class="input" type="date" required />
+                    </div>
+                </div>
+
+                <!-- Référence -->
+                <div class="form-row full">
+                    <div class="form-label">Référence du mouvement</div>
+                    <input id="nm-ref" name="reference_mouvement" class="input" placeholder="N° bon, facture, BL..." />
+                </div>
+
+                <!-- Notes -->
+                <div class="form-row full">
+                    <div class="form-label">Notes / Observations</div>
+                    <textarea id="nm-notes" name="notes" class="input" placeholder="Raison du mouvement, remarques..." style="min-height:80px;resize:vertical"></textarea>
+                </div>
+
+                <!-- Informations du produit -->
+                <div id="nm-product-info" style="display:none;background:#f5f5f5;border-radius:6px;padding:12px;margin:12px 0;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:14px;">
+                        <div>
+                            <span style="color:#666">Stock Actuel:</span>
+                            <div style="font-weight:600;font-size:16px;color:var(--accent-2)" id="nm-current-stock">0</div>
+                        </div>
+                        <div>
+                            <span style="color:#666">Après Mouvement:</span>
+                            <div style="font-weight:600;font-size:16px;color:var(--accent)" id="nm-new-stock">0</div>
+                        </div>
+                        <div>
+                            <span style="color:#666">Seuil d'Alerte:</span>
+                            <div style="font-weight:600;font-size:16px" id="nm-alert-threshold">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+                    <button type="reset" class="btn secondary">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                    <button type="button" class="btn secondary" data-close="modalNewMovement">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                    <button type="submit" class="btn success">
+                        <i class="fas fa-check"></i> Enregistrer Mouvement
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

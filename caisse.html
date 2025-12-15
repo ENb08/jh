@@ -33,7 +33,12 @@
             <div class="topbar">
                 <h1>Vente / Caisse</h1>
                 <div class="controls">
-                    <button class="btn" id="btn-new-product"><i class="fas fa-plus"></i> Nouveau produit</button>
+                    <div style="display:flex;align-items:center;gap:8px;margin-right:10px">
+                        <span style="font-size:14px;color:var(--muted)">Taux USD:</span>
+                        <input id="taux-input" type="number" class="input" value="2400" step="0.01" style="width:100px" />
+                        <button class="btn secondary" id="btn-update-taux"><i class="fas fa-sync"></i></button>
+                        <span id="taux-display" style="font-weight:600;color:var(--accent)">1$ = 2400 FC</span>
+                    </div>
                     <button class="btn secondary" id="btn-export"><i class="fas fa-file-export"></i> Export CSV</button>
                     <button class="btn ghost" id="btn-reset"><i class="fas fa-eraser"></i> Réinitialiser</button>
                 </div>
@@ -79,10 +84,17 @@
                     <div class="cart-list" id="cartList" aria-live="polite"></div>
 
                     <!-- TOTALS -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                        <span style="font-weight:600">Devise:</span>
+                        <div style="display:flex;gap:4px">
+                            <button class="payment-btn active" data-currency="CDF" style="padding:4px 12px;font-size:12px">CDF</button>
+                            <button class="payment-btn" data-currency="USD" style="padding:4px 12px;font-size:12px">USD</button>
+                        </div>
+                    </div>
                     <div class="totals">
-                        <div class="total-row"><div>Sous-total</div><div id="subtotal">0.00 €</div></div>
-                        <div class="total-row"><div>TVA (10%)</div><div id="tax">0.00 €</div></div>
-                        <div class="total-row grand"><div>Total TTC</div><div id="total">0.00 €</div></div>
+                        <div class="total-row"><div>Sous-total</div><div id="subtotal">0 FC</div></div>
+                        <div class="total-row"><div>TVA (10%)</div><div id="tax">0 FC</div></div>
+                        <div class="total-row grand"><div>Total TTC</div><div id="total">0 FC</div></div>
                     </div>
 
                     <!-- CHECKOUT SECTION -->
@@ -100,7 +112,7 @@
                             <input id="amount-received" class="payment-input" type="number" placeholder="Montant reçu" step="0.01" />
                             <div class="total-row" style="background:#f0fdf4;padding:8px;border-radius:6px;margin-bottom:8px">
                                 <div style="color:var(--accent-2)">Monnaie à rendre</div>
-                                <div id="change" style="color:var(--accent-2);font-weight:700">0.00 €</div>
+                                <div id="change" style="color:var(--accent-2);font-weight:700">0 FC</div>
                             </div>
                         </div>
 
@@ -148,373 +160,6 @@
     <!-- Hidden receipt for print -->
     <div id="receipt" style="display:none"></div>
 
-    <script>
-        // Bouton déconnexion
-        document.getElementById('btn-logout').addEventListener('click', (e) => {
-            e.preventDefault();
-            if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-                localStorage.removeItem('user');
-                fetch('assets/Api/logout.php', { method: 'POST' }).catch(() => {});
-                window.location.href = 'index.html';  // ✅ Redirige sur index.html
-            }
-        });
-
-        // Données initiales de démonstration
-        const products = [
-            {id:'89345678', name:'Riz Long 5kg', buy:4.00, sale:5.50, stock:50},
-            {id:'12345678', name:'Lait UHT 1L', buy:0.80, sale:1.20, stock:4},
-            {id:'55500011', name:'Café Moka 250g', buy:2.00, sale:3.50, stock:12},
-            {id:'77008900', name:'Sucre 1kg', buy:0.60, sale:1.00, stock:0},
-            {id:'99001234', name:'Huile 5L', buy:6.00, sale:8.50, stock:7},
-        ];
-        const TAX_RATE = 0.10;
-        const stateFromStock = s => s>10 ? 'ok' : (s>0 ? 'low' : 'out');
-
-        // Etat panier & paiement
-        const cart = new Map();
-        let currentPayment = 'cash';
-        let discount = 0;
-
-        // Utilitaires
-        const $ = id => document.getElementById(id);
-        const formatMoney = v => v.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
-
-        // Rendu produits et stock
-        function renderProducts(filterText = '', filterState = 'all') {
-            const grid = $('productsGrid');
-            grid.innerHTML = '';
-            const list = products.filter(p => {
-                const matchText = filterText.trim()==='' || (p.id+ ' ' + p.name).toLowerCase().includes(filterText.toLowerCase());
-                const st = stateFromStock(p.stock);
-                const matchState = filterState === 'all' || filterState === st;
-                return matchText && matchState;
-            });
-            list.forEach(p => {
-                const div = document.createElement('div');
-                div.className = 'card-product';
-                const state = stateFromStock(p.stock);
-                div.innerHTML = `
-                    <div class="prod-title">${p.name}</div>
-                    <div class="prod-meta">Réf: ${p.id} — Prix: ${formatMoney(p.sale)}</div>
-                    <div class="prod-meta">Stock: ${p.stock} ${p.stock<=5 && p.stock>0?'<span class="badge low">Bas</span>':''}${p.stock===0?'<span class="badge out">Rupture</span>':''}</div>
-                    <div class="prod-actions">
-                        <button class="btn" data-id="${p.id}" style="flex:1" aria-label="Ajouter ${p.name}">Ajouter</button>
-                    </div>
-                `;
-                grid.appendChild(div);
-            });
-            renderStockTable();
-        }
-
-        function renderStockTable(){
-            const tbody = $('stockTable');
-            tbody.innerHTML = '';
-            products.forEach(p => {
-                const tr = document.createElement('tr');
-                const state = stateFromStock(p.stock);
-                tr.innerHTML = `
-                    <td>${p.id}</td>
-                    <td>${p.name}</td>
-                    <td>${formatMoney(p.sale)}</td>
-                    <td>${p.stock}</td>
-                    <td>${state==='ok'?'<span class="badge ok">En stock</span>':state==='low'?'<span class="badge low">Bas</span>':'<span class="badge out">Rupture</span>'}</td>
-                    <td class="actions"><i class="fas fa-edit" data-edit="${p.id}" title="Modifier"></i><i class="fas fa-trash" data-del="${p.id}" title="Supprimer"></i></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Panier
-        function addToCart(id, qty = 1){
-            const product = products.find(p => p.id === id);
-            if(!product) return alert('Produit introuvable');
-            const currentQty = cart.has(id) ? cart.get(id).qty : 0;
-            if(product.stock < currentQty + qty) {
-                if(!confirm('Stock insuffisant. Ajouter quand même (vente à découvert) ?')) return;
-            }
-            cart.set(id, {product, qty: currentQty + qty});
-            renderCart();
-        }
-        function removeFromCart(id){
-            cart.delete(id);
-            renderCart();
-        }
-        function changeQty(id, qty){
-            if(qty <= 0){ removeFromCart(id); return; }
-            cart.set(id, {...cart.get(id), qty});
-            renderCart();
-        }
-        function renderCart(){
-            const list = $('cartList');
-            list.innerHTML = '';
-            let subtotal = 0;
-            let count = 0;
-            cart.forEach(({product, qty}, id) => {
-                const row = document.createElement('div');
-                row.className = 'cart-row';
-                row.innerHTML = `
-                    <div style="flex:1">
-                        <div style="font-weight:600">${product.name}</div>
-                        <div class="small-muted">Réf: ${product.id}</div>
-                    </div>
-                    <div style="width:120px;text-align:right">
-                        <div style="font-weight:700">${formatMoney(product.sale * qty)}</div>
-                        <div class="qty">
-                            <button data-dec="${id}">-</button>
-                            <div style="width:28px;text-align:center">${qty}</div>
-                            <button data-inc="${id}">+</button>
-                        </div>
-                        <div style="font-size:12px;margin-top:6px" class="small-muted"><i title="Supprimer" data-remove="${id}" class="fas fa-trash"></i></div>
-                    </div>
-                `;
-                list.appendChild(row);
-                subtotal += product.sale * qty;
-                count += qty;
-            });
-
-            // Calcul avec remise
-            let discountAmount = 0;
-            if(discount > 0) {
-                discountAmount = subtotal * (discount / 100);
-                subtotal -= discountAmount;
-            }
-
-            $('subtotal').textContent = formatMoney(subtotal);
-            const tax = subtotal * TAX_RATE;
-            $('tax').textContent = formatMoney(tax);
-            const total = subtotal + tax;
-            $('total').textContent = formatMoney(total);
-            $('cart-count').textContent = `${count} article${count>1?'s':''}`;
-
-            // Calcul monnaie (si espèces)
-            if(currentPayment === 'cash') {
-                const amountRcv = parseFloat($('amount-received').value) || 0;
-                const change = Math.max(0, amountRcv - total);
-                $('change').textContent = formatMoney(change);
-            }
-        }
-
-        // Checkout
-        function checkout(){
-            if(cart.size === 0) return alert('Le panier est vide');
-            if(currentPayment === 'cash') {
-                const amountRcv = parseFloat($('amount-received').value) || 0;
-                let subtotal = 0;
-                cart.forEach(({product, qty}) => subtotal += product.sale * qty);
-                if(discount > 0) subtotal -= subtotal * (discount / 100);
-                const total = subtotal * (1 + TAX_RATE);
-                if(amountRcv < total) return alert('Montant insuffisant !');
-            }
-            // Déduire du stock
-            cart.forEach(({product, qty}) => {
-                const p = products.find(x => x.id === product.id);
-                if(p) p.stock = Math.max(0, p.stock - qty);
-            });
-            // Générer ticket
-            const receiptHtml = generateReceipt();
-            $('receipt').innerHTML = receiptHtml;
-            // Vider panier
-            cart.clear();
-            discount = 0;
-            $('discount').value = '';
-            $('amount-received').value = '';
-            renderCart();
-            renderProducts($('search').value, $('filter-stock').value);
-            alert('Encaissement effectué avec succès !');
-        }
-
-        function generateReceipt(){
-            const now = new Date();
-            let html = '<div style="font-family:Inter,Arial;width:320px;padding:10px">';
-            html += '<h3 style="text-align:center">SuperMarket Pro</h3>';
-            html += `<div style="text-align:center">${now.toLocaleString('fr-FR')}</div><hr>`;
-            let subtotal = 0;
-            html += '<table style="width:100%">';
-            cart.forEach(({product, qty}) => {
-                html += `<tr><td>${product.name} x${qty}</td><td style="text-align:right">${formatMoney(product.sale * qty)}</td></tr>`;
-                subtotal += product.sale * qty;
-            });
-            html += '</table><hr>';
-            if(discount > 0) {
-                const discountAmount = subtotal * (discount / 100);
-                subtotal -= discountAmount;
-                html += `<div>Remise (${discount}%): -${formatMoney(discountAmount)}</div>`;
-            }
-            const tax = subtotal * TAX_RATE;
-            const total = subtotal + tax;
-            html += `<div>Sous-total: ${formatMoney(subtotal)}</div>`;
-            html += `<div>TVA (10%): ${formatMoney(tax)}</div>`;
-            html += `<div style="font-weight:700;font-size:1.1rem">Total: ${formatMoney(total)}</div>`;
-            html += `<div style="margin-top:12px">Mode: ${currentPayment.toUpperCase()}</div>`;
-            html += '<p style="text-align:center;margin-top:10px">Merci pour votre achat !</p></div>';
-            return html;
-        }
-
-        // PRINT
-        function printReceipt(){
-            const html = $('receipt').innerHTML || generateReceipt();
-            const w = window.open('', 'PRINT', 'height=600,width=400');
-            w.document.write('<html><head><title>Ticket</title></head><body>');
-            w.document.write(html);
-            w.document.write('</body></html>');
-            w.document.close();
-            w.focus();
-            w.print();
-            w.close();
-        }
-
-        // Export CSV (stock)
-        function exportCSV(){
-            let csv = 'Réf;Désignation;Prix;Stock\n';
-            products.forEach(p => csv += `${p.id};${p.name};${p.sale};${p.stock}\n`);
-            const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'stock_export.csv'; document.body.appendChild(a); a.click();
-            setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
-        }
-
-        // Événements globaux
-        document.addEventListener('DOMContentLoaded', () => {
-            $('year').textContent = new Date().getFullYear();
-            $('currentTime').textContent = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
-
-            renderProducts();
-            renderCart();
-
-            // Sélection mode de paiement
-            document.querySelectorAll('.payment-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.payment-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentPayment = btn.dataset.payment;
-                    $('cash-section').style.display = currentPayment === 'cash' ? 'block' : 'none';
-                });
-            });
-
-            // Montant reçu -> monnaie
-            $('amount-received').addEventListener('input', renderCart);
-
-            // Appliquer remise
-            $('btn-apply-discount').addEventListener('click', () => {
-                const discountValue = parseFloat($('discount').value) || 0;
-                if(discountValue < 0 || discountValue > 100) return alert('Remise invalide (0-100%)');
-                discount = discountValue;
-                renderCart();
-                alert(`Remise de ${discount}% appliquée`);
-            });
-
-            // Délégation: ajouter produit depuis grille
-            document.body.addEventListener('click', e => {
-                if(e.target.matches('.card-product .btn') || e.target.closest('.card-product .btn')){
-                    const btn = e.target.closest('button');
-                    const id = btn.dataset.id;
-                    addToCart(id);
-                }
-                if(e.target.dataset.inc){
-                    const id = e.target.dataset.inc;
-                    const item = cart.get(id);
-                    changeQty(id, item.qty + 1);
-                }
-                if(e.target.dataset.dec){
-                    const id = e.target.dataset.dec;
-                    const item = cart.get(id);
-                    changeQty(id, item.qty - 1);
-                }
-                if(e.target.dataset.remove){
-                    removeFromCart(e.target.dataset.remove);
-                }
-                if(e.target.dataset.edit){
-                    const id = e.target.dataset.edit;
-                    const p = products.find(x=>x.id===id);
-                    if(p){
-                        $('np-code').value = p.id; $('np-name').value = p.name; $('np-buy').value = p.buy; $('np-sale').value = p.sale; $('np-stock').value = p.stock;
-                        openModal();
-                    }
-                }
-                if(e.target.dataset.del){
-                    const id = e.target.dataset.del;
-                    if(confirm('Supprimer le produit ?')) {
-                        const idx = products.findIndex(x=>x.id===id);
-                        if(idx>-1) products.splice(idx,1);
-                        renderProducts($('search').value, $('filter-stock').value);
-                    }
-                }
-            });
-
-            // Recherche, filtre, code-barre
-            $('search').addEventListener('input', e => renderProducts(e.target.value, $('filter-stock').value));
-            $('filter-stock').addEventListener('change', e => renderProducts($('search').value, e.target.value));
-            $('btn-scan').addEventListener('click', () => {
-                const code = $('barcode').value.trim();
-                if(!code) return;
-                const p = products.find(x => x.id === code);
-                if(p) addToCart(p.id);
-                else if(confirm('Produit non trouvé. Voulez-vous le créer ?')) openModal(code);
-                $('barcode').value = '';
-            });
-
-            // Modal
-            $('btn-new-product').addEventListener('click', () => openModal());
-            $('np-cancel').addEventListener('click', closeModal);
-            $('np-save').addEventListener('click', () => {
-                const code = $('np-code').value.trim() || Date.now().toString().slice(-8);
-                const name = $('np-name').value.trim() || 'Produit';
-                const buy = parseFloat($('np-buy').value) || 0;
-                const sale = parseFloat($('np-sale').value) || 0;
-                const stock = parseInt($('np-stock').value) || 0;
-                const existing = products.find(p => p.id === code);
-                if(existing){
-                    existing.name = name; existing.buy = buy; existing.sale = sale; existing.stock = stock;
-                } else {
-                    products.unshift({id:code, name, buy, sale, stock});
-                }
-                closeModal();
-                renderProducts($('search').value, $('filter-stock').value);
-            });
-
-            // Actions checkout
-            $('btn-checkout').addEventListener('click', checkout);
-            $('btn-clear-cart').addEventListener('click', () => {
-                if(confirm('Vider le panier ?')) {
-                    cart.clear();
-                    discount = 0;
-                    $('discount').value = '';
-                    $('amount-received').value = '';
-                    renderCart();
-                }
-            });
-            $('btn-print').addEventListener('click', printReceipt);
-            $('btn-save-draft').addEventListener('click', () => {
-                const data = Array.from(cart.values());
-                localStorage.setItem('pos_draft', JSON.stringify(data));
-                alert('Brouillon sauvegardé');
-            });
-            $('btn-export').addEventListener('click', exportCSV);
-            $('btn-reset').addEventListener('click', () => {
-                if(confirm('Réinitialiser ?')){
-                    products.splice(0, products.length,
-                        {id:'89345678', name:'Riz Long 5kg', buy:4.00, sale:5.50, stock:50},
-                        {id:'12345678', name:'Lait UHT 1L', buy:0.80, sale:1.20, stock:4},
-                        {id:'55500011', name:'Café Moka 250g', buy:2.00, sale:3.50, stock:12},
-                        {id:'77008900', name:'Sucre 1kg', buy:0.60, sale:1.00, stock:0},
-                        {id:'99001234', name:'Huile 5L', buy:6.00, sale:8.50, stock:7},
-                    );
-                    cart.clear();
-                    discount = 0;
-                    renderProducts(); renderCart();
-                }
-            });
-
-            // Accessibility: enter on barcode
-            $('barcode').addEventListener('keydown', e => { if(e.key==='Enter') $('btn-scan').click(); });
-
-            // Modal helpers
-            function openModal(code = ''){ $('modalNew').classList.add('show'); if(code) $('np-code').value = code; }
-            function closeModal(){ $('modalNew').classList.remove('show'); ['np-code','np-name','np-buy','np-sale','np-stock'].forEach(id=>$(id).value=''); }
-            document.getElementById('modalNew').addEventListener('click', e => { if(e.target.id === 'modalNew') closeModal(); });
-
-        }); // DOMContentLoaded
-    </script>
+    <script src="assets/js/pos.js"></script>
 </body>
 </html>
