@@ -6,13 +6,37 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Gestion Stock & Dépôts — SuperMarket Pro</title>
     <meta name="description" content="Gestion complète du stock, dépôts, mouvements et alertes - SuperMarket Pro">
+    <link rel="manifest" href="/manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style_stock.css" />
     <link rel="icon" href="assets/img/favicon.ico" type="image/x-icon" />
+    <style>
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status-online {
+            background: #10b981;
+            color: white;
+        }
+        .status-offline {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
 </head>
 
 <body>
+    <!-- Indicateur de connexion -->
+    <div id="connection-status" class="connection-status status-online">🟢 En ligne</div>
     <div class="app">
         <aside class="sidebar" aria-label="Navigation principale">
             <div class="brand">
@@ -489,8 +513,15 @@
         </div>
     </div>
 
+    <script src="assets/js/offline-manager.js"></script>
     <script src="assets/js/script_stock.js"></script>
-
+    <script>
+        // Enregistrer le Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('✅ Service Worker enregistré:', reg.scope))
+                .catch(err => console.error('❌ Erreur SW:', err));
+        }
     </script>
 </body>
 

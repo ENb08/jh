@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1
--- Généré le : lun. 15 déc. 2025 à 06:32
+-- Généré le : lun. 15 déc. 2025 à 14:03
 -- Version du serveur : 10.4.32-MariaDB
--- Version de PHP : 8.2.12
+-- Version de PHP : 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -43,7 +43,9 @@ CREATE TABLE `appro_magasin` (
 
 INSERT INTO `appro_magasin` (`id_appro`, `id_produit`, `id_session`, `quantite`, `provenance`, `notes`, `date_appro`) VALUES
 (1, 1, 900277327, 40, 'Stock Principal', '', '2025-12-14 18:39:05'),
-(2, 2, 900277327, 20, 'Stock Principal', 'lune', '2025-12-14 19:05:09');
+(2, 2, 900277327, 20, 'Stock Principal', 'lune', '2025-12-14 19:05:09'),
+(3, 2, 900277327, 30, 'Stock Principal', 'ùùùùùùùùùùùùùùùùùùùùùùùùùù', '2025-12-15 11:52:50'),
+(4, 3, 900277327, 20, 'Stock Principal', 'dfssssssssssssss', '2025-12-15 11:57:12');
 
 -- --------------------------------------------------------
 
@@ -68,7 +70,9 @@ INSERT INTO `entree_stock` (`id_produit`, `id_session`, `quantite`, `numero_refe
 (1, 900277327, 10, 0, 'HGGGGGGGGGGGGGGGGG', '2025-12-10 18:4'),
 (2, 900277327, 20, 0, 'qqqqqqqqqqqhuVJQVDKVKYDYYAUUYUAUUYA', '2025-12-14 05:0'),
 (1, 900277327, 40, 0, 'eeeeeeeddddddddddddddddddddd', '2025-12-14 18:1'),
-(1, 900277327, 20, 0, 'dddddddddddddddd', '2025-12-14 19:0');
+(1, 900277327, 20, 0, 'dddddddddddddddd', '2025-12-14 19:0'),
+(2, 900277327, 30, 0, '\'\'\'\'\'\'\'\'\'\'\'\"\"\"\"\"\"t\"\'(\"(', '2025-12-15 12:5'),
+(2, 900277327, 30, 0, 'e&&&&&&&&&&&&&&', '2025-12-15 12:5');
 
 -- --------------------------------------------------------
 
@@ -111,8 +115,9 @@ CREATE TABLE `magasin_stock` (
 --
 
 INSERT INTO `magasin_stock` (`id_magasin_stock`, `id_produit`, `id_session`, `quantite_magasin`, `date_derniere_appro`, `date_creation`, `date_modification`) VALUES
-(1, 1, 900277327, 80, '2025-12-14 18:39:05', '2025-12-14 18:38:08', '2025-12-14 18:39:05'),
-(3, 2, 900277327, 20, '2025-12-14 19:05:09', '2025-12-14 19:05:09', '2025-12-14 19:05:09');
+(1, 1, 900277327, 73, '2025-12-14 18:39:05', '2025-12-14 18:38:08', '2025-12-15 12:32:40'),
+(3, 2, 900277327, 50, '2025-12-15 11:52:50', '2025-12-14 19:05:09', '2025-12-15 11:52:50'),
+(5, 3, 900277327, 20, '2025-12-15 11:57:12', '2025-12-15 11:57:12', '2025-12-15 11:57:12');
 
 -- --------------------------------------------------------
 
@@ -145,7 +150,8 @@ INSERT INTO `mouvements_stock` (`id_mouvement`, `id_produit`, `id_session`, `typ
 (1, 1, 900277327, 'sortie', 10, 'principal', '', 'bbbbbbbbbbbbbbbbbb', 'bjjjjjjjjjjjjjjjjjjjjjj', '2025-12-14', '2025-12-14 17:53:29', -10, 50, 40),
 (2, 1, 900277327, 'sortie', 10, 'principal', '', 'zzzzzzzzzzzzzzzz', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz', '2025-12-12', '2025-12-14 17:54:49', -10, 40, 30),
 (3, 1, 900277327, 'entree', 200, 'principal', '', 'ddddddddddddddddd', 'ccccccccccccccccccccccc', '2025-12-14', '2025-12-14 18:00:13', 200, 30, 230),
-(4, 2, 900277327, 'sortie', 20, '', '', 'ssssssssssssssssssssssssé', 'éééééééééééééééééééééééééééééééééééé', '2025-12-14', '2025-12-14 20:04:24', -20, 80, 60);
+(4, 2, 900277327, 'sortie', 20, '', '', 'ssssssssssssssssssssssssé', 'éééééééééééééééééééééééééééééééééééé', '2025-12-14', '2025-12-14 20:04:24', -20, 80, 60),
+(5, 2, 900277327, 'sortie', 30, '', '', 'rrrrrrrrrrrrrrrrrrrrr', 'érrrrrrrrrrrrr', '2025-12-16', '2025-12-15 11:56:19', -30, 90, 60);
 
 -- --------------------------------------------------------
 
@@ -186,7 +192,8 @@ CREATE TABLE `produit` (
 
 INSERT INTO `produit` (`id_produit`, `id_session`, `reference`, `nom_produit`, `prix_achat`, `prix_vente`, `quantite_stock`, `quantite_alerte`, `categorie`, `date_creation`) VALUES
 (1, 900277327, 'maltina009', 'MAltina', 2000, 2500, 130, 5, 'Boisson', '2025-12-14 17:5'),
-(2, 900277327, 'coca_001', 'coda', 2000, 2500, 60, 5, 'Boisson', '2025-12-14 20:0');
+(2, 900277327, 'coca_001', 'coda', 2000, 2500, 60, 5, 'Boisson', '2025-12-14 20:0'),
+(3, 900277327, 'fanta002', 'fanta', 1000, 1500, 30, 5, 'Alimentaire', '2025-12-15 12:5');
 
 -- --------------------------------------------------------
 
@@ -219,6 +226,7 @@ INSERT INTO `users_jh` (`users_name`, `password_users`, `role_users`, `id_magasi
 CREATE TABLE `ventes` (
   `id_vente` int(15) NOT NULL,
   `id_session` int(15) NOT NULL,
+  `id_magasin_vente` int(15) NOT NULL,
   `date_vente` datetime NOT NULL,
   `mode_paiement` varchar(20) NOT NULL DEFAULT 'cash',
   `devise` varchar(5) NOT NULL DEFAULT 'CDF',
@@ -233,6 +241,41 @@ CREATE TABLE `ventes` (
   `statut` varchar(20) NOT NULL DEFAULT 'completee',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Déchargement des données de la table `ventes`
+--
+
+INSERT INTO `ventes` (`id_vente`, `id_session`, `id_magasin_vente`, `date_vente`, `mode_paiement`, `devise`, `sous_total`, `remise_pourcent`, `montant_remise`, `montant_tva`, `total`, `montant_recu`, `monnaie`, `taux_usd`, `statut`, `created_at`) VALUES
+(28, 1, 1, '2025-12-15 12:49:37', 'cash', 'CDF', 5000.00, 0.00, 0.00, 500.00, 5500.00, 5500.00, 0.00, 2400.00, 'completed', '2025-12-15 11:49:37'),
+(30, 1, 1, '2025-12-15 12:52:10', 'cash', 'CDF', 7500.00, 0.00, 0.00, 750.00, 8250.00, 11000.00, 2750.00, 2400.00, 'completed', '2025-12-15 11:52:10'),
+(37, 1, 1, '2025-12-15 13:32:40', 'cash', 'CDF', 5000.00, 0.00, 0.00, 500.00, 5500.00, 6000.00, 500.00, 2300.00, 'completed', '2025-12-15 12:32:40');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `vente_details`
+--
+
+CREATE TABLE `vente_details` (
+  `id_detail` int(11) NOT NULL,
+  `id_vente` int(11) NOT NULL,
+  `id_produit` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL DEFAULT 1,
+  `price_unit` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `price_total` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `currency` varchar(10) NOT NULL DEFAULT 'CDF',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `vente_details`
+--
+
+INSERT INTO `vente_details` (`id_detail`, `id_vente`, `id_produit`, `quantity`, `price_unit`, `price_total`, `currency`, `created_at`) VALUES
+(2, 28, 1, 2, 2500.00, 5000.00, 'CDF', '2025-12-15 11:49:37'),
+(4, 30, 1, 3, 2500.00, 7500.00, 'CDF', '2025-12-15 11:52:10'),
+(5, 37, 1, 2, 2500.00, 5000.00, 'CDF', '2025-12-15 12:32:40');
 
 -- --------------------------------------------------------
 
@@ -306,6 +349,14 @@ ALTER TABLE `ventes`
   ADD KEY `idx_date` (`date_vente`);
 
 --
+-- Index pour la table `vente_details`
+--
+ALTER TABLE `vente_details`
+  ADD PRIMARY KEY (`id_detail`),
+  ADD KEY `idx_vente` (`id_vente`),
+  ADD KEY `idx_produit` (`id_produit`);
+
+--
 -- Index pour la table `vente_lignes`
 --
 ALTER TABLE `vente_lignes`
@@ -321,7 +372,7 @@ ALTER TABLE `vente_lignes`
 -- AUTO_INCREMENT pour la table `appro_magasin`
 --
 ALTER TABLE `appro_magasin`
-  MODIFY `id_appro` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_appro` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT pour la table `magasin`
@@ -333,13 +384,13 @@ ALTER TABLE `magasin`
 -- AUTO_INCREMENT pour la table `magasin_stock`
 --
 ALTER TABLE `magasin_stock`
-  MODIFY `id_magasin_stock` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_magasin_stock` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT pour la table `mouvements_stock`
 --
 ALTER TABLE `mouvements_stock`
-  MODIFY `id_mouvement` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_mouvement` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT pour la table `points_vente_stock`
@@ -351,7 +402,7 @@ ALTER TABLE `points_vente_stock`
 -- AUTO_INCREMENT pour la table `produit`
 --
 ALTER TABLE `produit`
-  MODIFY `id_produit` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_produit` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT pour la table `users_jh`
@@ -363,7 +414,13 @@ ALTER TABLE `users_jh`
 -- AUTO_INCREMENT pour la table `ventes`
 --
 ALTER TABLE `ventes`
-  MODIFY `id_vente` int(15) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_vente` int(15) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+
+--
+-- AUTO_INCREMENT pour la table `vente_details`
+--
+ALTER TABLE `vente_details`
+  MODIFY `id_detail` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT pour la table `vente_lignes`
@@ -374,6 +431,13 @@ ALTER TABLE `vente_lignes`
 --
 -- Contraintes pour les tables déchargées
 --
+
+--
+-- Contraintes pour la table `vente_details`
+--
+ALTER TABLE `vente_details`
+  ADD CONSTRAINT `fk_vente_details_produit` FOREIGN KEY (`id_produit`) REFERENCES `produit` (`id_produit`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_vente_details_vente` FOREIGN KEY (`id_vente`) REFERENCES `ventes` (`id_vente`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `vente_lignes`

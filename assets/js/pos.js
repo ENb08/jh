@@ -9,7 +9,7 @@ let discount = 0;
 let currentCurrency = 'CDF'; // CDF ou USD
 let TAUX_USD = 2400; // Taux de conversion (1 USD = X CDF)
 
-const TAX_RATE = 0.10;
+const TAX_RATE = 0;
 const $ = id => document.getElementById(id);
 
 // Formatage des devises
@@ -39,6 +39,7 @@ async function loadProducts() {
     try {
         const response = await fetch('assets/Api/getMagasinStock.php');
         const data = await response.json();
+        
         if (data.products) {
             products = data.products.map(p => ({
                 id: p.id,
@@ -50,10 +51,28 @@ async function loadProducts() {
                 stock: p.quantity_magasin,
                 quantity_stock: p.quantity_stock
             }));
+            
+            // Sauvegarder les produits localement
+            if (window.offlineManager) {
+                await window.offlineManager.saveProducts(products);
+            }
+            
             renderProducts();
         }
     } catch (error) {
         console.error('Erreur chargement produits:', error);
+        
+        // Charger depuis le cache offline
+        if (window.offlineManager) {
+            const cachedProducts = await window.offlineManager.getProducts();
+            if (cachedProducts.length > 0) {
+                products = cachedProducts;
+                renderProducts();
+                alert('⚠️ Mode hors ligne - Produits chargés depuis le cache');
+                return;
+            }
+        }
+        
         alert('Erreur lors du chargement des produits');
     }
 }
@@ -154,6 +173,7 @@ function changeQty(id, qty) {
     cart.set(id, {...item, qty});
     renderCart();
 }
+
 function renderCart() {
     const list = $('cartList');
     list.innerHTML = '';
@@ -199,9 +219,9 @@ function renderCart() {
     }
 
     $('subtotal').textContent = formatMoney(subtotal);
-    const tax = subtotal * TAX_RATE;
+    const tax = 0;
     $('tax').textContent = formatMoney(tax);
-    const total = subtotal + tax;
+    const total = subtotal;
     $('total').textContent = formatMoney(total);
     $('cart-count').textContent = `${count} article${count > 1 ? 's' : ''}`;
 
@@ -227,7 +247,7 @@ async function checkout() {
             subtotal += price * qty;
         });
         if (discount > 0) subtotal -= subtotal * (discount / 100);
-        const total = subtotal * (1 + TAX_RATE);
+        const total = subtotal;
 
         if (amountRcv < total) return alert('Montant insuffisant !');
     }
@@ -248,11 +268,42 @@ async function checkout() {
         payment_mode: currentPayment,
         currency: currentCurrency,
         discount: discount,
-        amount_received: amountRcv
+        amount_received: amountRcv,
+        taux_usd: TAUX_USD
     };
 
+    console.log('📤 Envoi données vente:', saleData);
+
     try {
-        // Envoyer la vente au serveur
+        // Vérifier si on est en ligne
+        const isOnline = navigator.onLine;
+        
+        if (!isOnline && window.offlineManager) {
+            // Mode offline: sauvegarder la vente localement
+            const pendingId = await window.offlineManager.addPendingVente(saleData);
+            console.log('💾 Vente sauvegardée localement:', pendingId);
+            
+            // Enregistrer une sync background si disponible
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready
+                    .then(reg => reg.sync.register('sync-ventes'))
+                    .then(() => console.log('Background sync enregistré'))
+                    .catch(err => console.warn('Impossible d\'enregistrer background sync', err));
+            }
+
+            // Mettre à jour le badge
+            updateSyncBadge();
+            
+            alert('⚠️ Mode hors ligne\nVente enregistrée localement\nElle sera synchronisée automatiquement');
+            
+            // Vider panier
+            cart.clear();
+            renderCart();
+            renderProducts();
+            await loadProducts();
+            return;
+        }
+
         const response = await fetch('assets/Api/createVente.php', {
             method: 'POST',
             headers: {
@@ -261,10 +312,40 @@ async function checkout() {
             body: JSON.stringify(saleData)
         });
 
+        console.log('📥 Réponse serveur status:', response.status);
+
+        // Vérifier si la réponse est bien du JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            console.error('❌ Réponse non-JSON:', text);
+            
+            // En cas d'erreur réseau, sauvegarder localement
+            if (window.offlineManager) {
+                const pendingId = await window.offlineManager.addPendingVente(saleData);
+                // Enregistrer background sync si possible
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    navigator.serviceWorker.ready
+                        .then(reg => reg.sync.register('sync-ventes'))
+                        .then(() => console.log('Background sync enregistré'))
+                        .catch(err => console.warn('Impossible d\'enregistrer background sync', err));
+                }
+                updateSyncBadge();
+                alert('⚠️ Erreur réseau\nVente sauvegardée localement pour synchronisation ultérieure');
+                cart.clear();
+                renderCart();
+                return;
+            }
+            
+            alert('Erreur serveur: réponse invalide\n' + text.substring(0, 200));
+            return;
+        }
+
         const data = await response.json();
+        console.log('📄 Données reçues:', data);
 
         if (!data.success) {
-            alert('Erreur: ' + data.message);
+            alert('❌ Erreur: ' + data.message);
             return;
         }
 
@@ -279,15 +360,21 @@ async function checkout() {
         $('amount-received').value = '';
         renderCart();
 
-        // Recharger les produits pour mettre à jour le stock
+        // Recharger les produits
         await loadProducts();
 
-        alert('Vente enregistrée avec succès !');
+        alert('✅ Vente enregistrée avec succès !');
 
     } catch (error) {
-        console.error('Erreur lors de la vente:', error);
-        alert('Erreur lors de l\'enregistrement de la vente');
+        console.error('❌ Erreur complète:', error);
+        alert('❌ Erreur lors de l\'enregistrement: ' + error.message);
     }
+}
+
+// Générer le ticket
+function generateReceipt() {
+    const now = new Date();
+    let html = '<div style="font-family:monospace;padding:10px">';
     html += '<h3 style="text-align:center">SuperMarket Pro</h3>';
     html += '<div style="text-align:center">CHRISTIANA NDODA MPAKA</div>';
     html += `<div style="text-align:center;font-size:12px">${now.toLocaleString('fr-FR')}</div><hr>`;
@@ -310,11 +397,10 @@ async function checkout() {
         subtotal -= discountAmount;
     }
 
-    const tax = subtotal * TAX_RATE;
-    const total = subtotal + tax;
+    const tax = 0;
+    const total = subtotal;
 
     html += `<div style="display:flex;justify-content:space-between"><span>Sous-total:</span><span>${formatMoney(subtotal)}</span></div>`;
-    html += `<div style="display:flex;justify-content:space-between"><span>TVA (10%):</span><span>${formatMoney(tax)}</span></div>`;
     html += `<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;margin-top:8px"><span>Total:</span><span>${formatMoney(total)}</span></div>`;
     html += `<div style="margin-top:12px">Mode: ${currentPayment.toUpperCase()} | Devise: ${currentCurrency}</div>`;
 
@@ -340,6 +426,22 @@ function printReceipt() {
     w.focus();
     w.print();
     w.close();
+}
+
+// Mettre à jour le badge de synchronisation
+async function updateSyncBadge() {
+    if (!window.offlineManager) return;
+    
+    const pending = await window.offlineManager.getPendingVentes();
+    const badge = $('sync-badge');
+    const count = $('sync-count');
+    
+    if (pending.length > 0) {
+        count.textContent = pending.length;
+        badge.style.display = 'block';
+    } else {
+        badge.style.display = 'none';
+    }
 }
 
 // Export CSV
@@ -380,8 +482,8 @@ async function updateTaux() {
             TAUX_USD = newTaux;
             $('taux-display').textContent = `1$ = ${TAUX_USD} FC`;
             alert('Taux mis à jour avec succès');
-            await loadProducts(); // Recharger pour recalculer les prix
-            renderCart(); // Recalculer le panier
+            await loadProducts();
+            renderCart();
         } else {
             alert('Erreur: ' + data.message);
         }
@@ -399,25 +501,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateTime();
     setInterval(updateTime, 60000);
 
-    // Charger le taux et les produits
+    // Mettre à jour le badge de sync toutes les 10 secondes
+    setInterval(updateSyncBadge, 10000);
+    updateSyncBadge();
+
     await loadTaux();
     await loadProducts();
     renderCart();
 
-    // Bouton déconnexion
-    $('btn-logout').addEventListener('click', (e) => {
+    $('btn-logout').addEventListener('click', async (e) => {
         e.preventDefault();
         if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-            localStorage.removeItem('user');
-            fetch('assets/Api/logout.php', {method: 'POST'}).catch(() => {});
-            window.location.href = 'index.html';
+            try {
+                // Supprimer les données locales
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Appeler l'API de déconnexion
+                await fetch('assets/Api/logout.php', {method: 'POST'});
+            } catch (error) {
+                console.error('Erreur déconnexion:', error);
+            } finally {
+                // Rediriger vers index
+                window.location.href = 'index.html';
+            }
         }
     });
 
-    // Mise à jour du taux
     $('btn-update-taux').addEventListener('click', updateTaux);
 
-    // Sélection de la devise
     document.querySelectorAll('[data-currency]').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('[data-currency]').forEach(b => b.classList.remove('active'));
@@ -428,7 +540,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Sélection mode de paiement
     document.querySelectorAll('[data-payment]').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('[data-payment]').forEach(b => b.classList.remove('active'));
@@ -438,10 +549,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Montant reçu -> monnaie
     $('amount-received').addEventListener('input', renderCart);
 
-    // Appliquer remise
     $('btn-apply-discount').addEventListener('click', () => {
         const discountValue = parseFloat($('discount').value) || 0;
         if (discountValue < 0 || discountValue > 100) return alert('Remise invalide (0-100%)');
@@ -450,45 +559,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert(`Remise de ${discount}% appliquée`);
     });
 
-    // Délégation d'événements
     document.body.addEventListener('click', e => {
-        // Ajouter au panier depuis la grille
         if (e.target.matches('.card-product .btn') || e.target.closest('.card-product .btn')) {
             const btn = e.target.closest('button');
             const id = btn.dataset.id;
             if (id) addToCart(id);
         }
 
-        // Ajouter depuis le tableau
         if (e.target.dataset.add) {
             addToCart(e.target.dataset.add);
         }
 
-        // Incrémenter quantité
         if (e.target.dataset.inc) {
             const id = e.target.dataset.inc;
             const item = cart.get(id);
             if (item) changeQty(id, item.qty + 1);
         }
 
-        // Décrémenter quantité
         if (e.target.dataset.dec) {
             const id = e.target.dataset.dec;
             const item = cart.get(id);
             if (item) changeQty(id, item.qty - 1);
         }
 
-        // Supprimer du panier
         if (e.target.dataset.remove) {
             removeFromCart(e.target.dataset.remove);
         }
     });
 
-// Recherche et filtres
     $('search').addEventListener('input', e => renderProducts(e.target.value, $('filter-stock').value));
     $('filter-stock').addEventListener('change', e => renderProducts($('search').value, e.target.value));
 
-    // Scanner code-barre
     $('btn-scan').addEventListener('click', () => {
         const code = $('barcode').value.trim();
         if (!code) return;
@@ -502,7 +603,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.key === 'Enter') $('btn-scan').click();
     });
 
-    // Actions checkout
     $('btn-checkout').addEventListener('click', checkout);
 
     $('btn-clear-cart').addEventListener('click', () => {

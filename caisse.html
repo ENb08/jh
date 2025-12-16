@@ -1,30 +1,71 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Vente / Caisse — SuperMarket Pro</title>
     <meta name="description" content="Point de vente, gestion des articles et caisse - SuperMarket Pro">
+    <link rel="manifest" href="/manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/caisse.css" />
+    <style>
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status-online {
+            background: #10b981;
+            color: white;
+        }
+        .status-offline {
+            background: #ef4444;
+            color: white;
+        }
+        .sync-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #f59e0b;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 9999;
+        }
+    </style>
 </head>
+
 <body>
+    <!-- Indicateur de connexion -->
+    <div id="connection-status" class="connection-status status-online">🟢 En ligne</div>
+    
     <div class="app">
         <aside class="sidebar" aria-label="Navigation principale">
             <div class="brand">
                 <div class="logo">JH</div>
                 <div>
-                    <div style="font-weight:700">CHRISTIANA NDODA MPAKA</div>
+                    <div style="font-weight:700">Jeremie humble</div>
                     <div style="font-size:12px;color:var(--muted)">Vente & Caisse</div>
                 </div>
             </div>
 
             <nav>
-
+                <a href="index.html" class="menu-item active" aria-current="page"><i class="fas fa-home"></i> Menu</a>
                 <a href="#" class="menu-item active"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
-                <a href="#" class="menu-item" id="btn-logout" style="color: #e74c3c;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
-       <div class="small">© <span id="year"></span> SuperMarket Pro</div>
+                <a href="#" class="menu-item" id="btn-logout" style="color: #e74c3c;"><i
+                        class="fas fa-sign-out-alt"></i> Déconnexion</a>
+                <div class="small">© <span id="year"></span> SuperMarket Pro</div>
 
 
         </aside>
@@ -35,7 +76,8 @@
                 <div class="controls">
                     <div style="display:flex;align-items:center;gap:8px;margin-right:10px">
                         <span style="font-size:14px;color:var(--muted)">Taux USD:</span>
-                        <input id="taux-input" type="number" class="input" value="2400" step="0.01" style="width:100px" />
+                        <input id="taux-input" type="number" class="input" value="2400" step="0.01"
+                            style="width:100px" />
                         <button class="btn secondary" id="btn-update-taux"><i class="fas fa-sync"></i></button>
                         <span id="taux-display" style="font-weight:600;color:var(--accent)">1$ = 2400 FC</span>
                     </div>
@@ -47,7 +89,8 @@
             <section class="workspace">
                 <div class="panel">
                     <div class="products-top">
-                        <input id="search" class="search" type="search" placeholder="Rechercher produit, référence, catégorie..." />
+                        <input id="search" class="search" type="search"
+                            placeholder="Rechercher produit, référence, catégorie..." />
                         <input id="barcode" class="barcode" type="text" placeholder="Scanner / Code-barre" />
                         <button class="btn" id="btn-scan">Ajouter</button>
                     </div>
@@ -68,7 +111,14 @@
                     <div class="panel" style="padding:8px">
                         <table>
                             <thead>
-                                <tr><th>Ref</th><th>Produit</th><th>Prix</th><th>Stock</th><th>État</th><th>Actions</th></tr>
+                                <tr>
+                                    <th>Ref</th>
+                                    <th>Produit</th>
+                                    <th>Prix</th>
+                                    <th>Stock</th>
+                                    <th>État</th>
+                                    <th>Actions</th>
+                                </tr>
                             </thead>
                             <tbody id="stockTable"></tbody>
                         </table>
@@ -77,7 +127,9 @@
 
                 <aside class="panel" aria-label="Panier et encaissement">
                     <div class="cart-header">
-                        <div><strong>Panier</strong><div class="small-muted" id="cart-count">0 articles</div></div>
+                        <div><strong>Panier</strong>
+                            <div class="small-muted" id="cart-count">0 articles</div>
+                        </div>
                         <div id="currentTime" class="small-muted"></div>
                     </div>
 
@@ -87,30 +139,47 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                         <span style="font-weight:600">Devise:</span>
                         <div style="display:flex;gap:4px">
-                            <button class="payment-btn active" data-currency="CDF" style="padding:4px 12px;font-size:12px">CDF</button>
-                            <button class="payment-btn" data-currency="USD" style="padding:4px 12px;font-size:12px">USD</button>
+                            <button class="payment-btn active" data-currency="CDF"
+                                style="padding:4px 12px;font-size:12px">CDF</button>
+                            <button class="payment-btn" data-currency="USD"
+                                style="padding:4px 12px;font-size:12px">USD</button>
                         </div>
                     </div>
                     <div class="totals">
-                        <div class="total-row"><div>Sous-total</div><div id="subtotal">0 FC</div></div>
-                        <div class="total-row"><div>TVA (10%)</div><div id="tax">0 FC</div></div>
-                        <div class="total-row grand"><div>Total TTC</div><div id="total">0 FC</div></div>
+                        <div class="total-row">
+                            <div>Sous-total</div>
+                            <div id="subtotal">0 FC</div>
+                        </div>
+                        <div class="total-row">
+                            <div>TVA (0%)</div>
+                            <div id="tax">0 FC</div>
+                        </div>
+                        <div class="total-row grand">
+                            <div>Total TTC</div>
+                            <div id="total">0 FC</div>
+                        </div>
                     </div>
 
                     <!-- CHECKOUT SECTION -->
                     <div class="checkout-panel">
                         <div class="checkout-title"><i class="fas fa-money-bill-wave"></i> Mode de paiement</div>
                         <div class="payment-options">
-                            <button class="payment-btn active" data-payment="cash"><i class="fas fa-money-bill"></i> Espèces</button>
-                            <button class="payment-btn" data-payment="card"><i class="fas fa-credit-card"></i> Carte</button>
-                            <button class="payment-btn" data-payment="check"><i class="fas fa-check"></i> Chèque</button>
-                            <button class="payment-btn" data-payment="transfer"><i class="fas fa-exchange-alt"></i> Virement</button>
+                            <button class="payment-btn active" data-payment="cash"><i class="fas fa-money-bill"></i>
+                                Espèces</button>
+                            <button class="payment-btn" data-payment="card"><i class="fas fa-credit-card"></i>
+                                Carte</button>
+                            <button class="payment-btn" data-payment="check"><i class="fas fa-check"></i>
+                                Chèque</button>
+                            <button class="payment-btn" data-payment="transfer"><i class="fas fa-exchange-alt"></i>
+                                Virement</button>
                         </div>
 
                         <!-- Montant reçu (espèces) -->
                         <div id="cash-section">
-                            <input id="amount-received" class="payment-input" type="number" placeholder="Montant reçu" step="0.01" />
-                            <div class="total-row" style="background:#f0fdf4;padding:8px;border-radius:6px;margin-bottom:8px">
+                            <input id="amount-received" class="payment-input" type="number" placeholder="Montant reçu"
+                                step="0.01" />
+                            <div class="total-row"
+                                style="background:#f0fdf4;padding:8px;border-radius:6px;margin-bottom:8px">
                                 <div style="color:var(--accent-2)">Monnaie à rendre</div>
                                 <div id="change" style="color:var(--accent-2);font-weight:700">0 FC</div>
                             </div>
@@ -123,14 +192,18 @@
                         </div>
 
                         <!-- Boutons d'action -->
-                        <button class="btn-action checkout" id="btn-checkout"><i class="fas fa-check-circle"></i> Encaisser</button>
-                        <button class="btn-action cancel" id="btn-clear-cart"><i class="fas fa-times-circle"></i> Annuler</button>
+                        <button class="btn-action checkout" id="btn-checkout"><i class="fas fa-check-circle"></i>
+                            Encaisser</button>
+                        <button class="btn-action cancel" id="btn-clear-cart"><i class="fas fa-times-circle"></i>
+                            Annuler</button>
                     </div>
 
                     <!-- Autres actions -->
                     <div style="display:flex;gap:6px">
-                        <button class="btn secondary" style="flex:1;font-size:12px" id="btn-print"><i class="fas fa-print"></i> Ticket</button>
-                        <button class="btn secondary" style="flex:1;font-size:12px" id="btn-save-draft"><i class="fas fa-save"></i> Brouillon</button>
+                        <button class="btn secondary" style="flex:1;font-size:12px" id="btn-print"><i
+                                class="fas fa-print"></i> Ticket</button>
+                        <button class="btn secondary" style="flex:1;font-size:12px" id="btn-save-draft"><i
+                                class="fas fa-save"></i> Brouillon</button>
                     </div>
                 </aside>
             </section>
@@ -147,7 +220,11 @@
                 <input id="np-buy" class="input" placeholder="Prix Achat" />
                 <input id="np-sale" class="input" placeholder="Prix Vente" />
                 <input id="np-stock" class="input" placeholder="Stock initial" />
-                <select id="np-state" class="input"><option value="ok">En stock</option><option value="low">Bas</option><option value="out">Rupture</option></select>
+                <select id="np-state" class="input">
+                    <option value="ok">En stock</option>
+                    <option value="low">Bas</option>
+                    <option value="out">Rupture</option>
+                </select>
             </div>
 
             <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
@@ -160,6 +237,21 @@
     <!-- Hidden receipt for print -->
     <div id="receipt" style="display:none"></div>
 
+    <!-- Badge de synchronisation -->
+    <div id="sync-badge" class="sync-badge" style="display:none">
+        <i class="fas fa-sync-alt"></i> <span id="sync-count">0</span> vente(s) en attente
+    </div>
+
+    <script src="assets/js/offline-manager.js"></script>
     <script src="assets/js/pos.js"></script>
+    <script>
+        // Enregistrer le Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('✅ Service Worker enregistré:', reg.scope))
+                .catch(err => console.error('❌ Erreur SW:', err));
+        }
+    </script>
 </body>
+
 </html>
