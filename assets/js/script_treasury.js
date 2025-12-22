@@ -57,7 +57,7 @@ function calculateTotalAmount() {
  */
 async function fetchData(endpoint) {
     try {
-        const response = await fetch(`${endpoint}`);
+        const response = await fetch(`assets/Api/${endpoint}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
     } catch (error) {
@@ -68,15 +68,30 @@ async function fetchData(endpoint) {
 }
 
 /**
+ * Charge les données de trésorerie
+ */
+async function loadTreasuryData() {
+    const data = await fetchData('getTresorerie.php');
+    if (data && data.success) {
+        purchases = data.achats || [];
+        expenses = data.depenses || [];
+        renderPurchases();
+        renderExpenses();
+        updateStats(data.stats);
+        initCharts(data);
+    }
+}
+
+/**
  * Charge les achats depuis la base de données
  * Explication: Récupère tous les achats fournisseurs
  */
 async function loadPurchases() {
-    const data = await fetchData('purchases_api.php');
-    if (data) purchases = data;
-    renderPurchases();
-    updateStats();
-    initCharts();
+    const data = await fetchData('getStockEntrees.php');
+    if (data && data.success) {
+        purchases = data.entrees || [];
+        renderPurchases();
+    }
 }
 
 /**
@@ -84,22 +99,10 @@ async function loadPurchases() {
  * Explication: Récupère toutes les dépenses opérationnelles
  */
 async function loadExpenses() {
-    const data = await fetchData('expenses_api.php');
-    if (data) expenses = data;
-    renderExpenses();
-    updateStats();
-    initCharts();
-}
-
-/**
- * Charge la liste des fournisseurs
- * Explication: Remplit la liste déroulante des fournisseurs
- */
-async function loadSuppliers() {
-    const data = await fetchData('suppliers_api.php');
-    if (data) {
-        suppliers = data;
-        updateSupplierSelect();
+    const data = await fetchData('getTresorerie.php');
+    if (data && data.success) {
+        expenses = data.depenses || [];
+        renderExpenses();
     }
 }
 
@@ -112,38 +115,34 @@ async function loadSuppliers() {
  * - Affiche le montant HT, TVA et TTC
  * - Montre le statut de paiement
  */
-function renderPurchases(searchText = '', filterSupplier = '', filterStatus = '') {
+function renderPurchases(searchText = '') {
     const tbody = $('purchasesTable');
+    if (!tbody) return;
     tbody.innerHTML = '';
+
+    if (!purchases || purchases.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Aucun achat enregistré</td></tr>';
+        return;
+    }
 
     purchases.forEach(p => {
         const matchSearch = searchText === '' ||
-            (p.supplier_name + ' ' + p.invoice_no).toLowerCase().includes(searchText.toLowerCase());
-        const matchSupplier = filterSupplier === '' || filterSupplier === p.supplier_id;
-        const matchStatus = filterStatus === '' || filterStatus === p.payment_status;
+            (p.fournisseur + ' ' + (p.numero_facture || '')).toLowerCase().includes(searchText.toLowerCase());
 
-        if (!matchSearch || !matchSupplier || !matchStatus) return;
+        if (!matchSearch) return;
 
-        const statusBadge = {
-            'pending': '<span class="badge pending">En attente</span>',
-            'paid': '<span class="badge ok">Payé</span>',
-            'partially': '<span class="badge warning">Partiellement payé</span>'
-        }[p.payment_status] || '<span class="badge">Inconnu</span>';
+        const montant = p.devise === 'CDF' 
+            ? Math.round(p.montant).toLocaleString('fr-FR') + ' FC'
+            : '$' + parseFloat(p.montant).toFixed(2);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${formatDate(p.purchase_date)}</td>
-            <td>${p.supplier_name}</td>
-            <td><span class="badge">${p.category}</span></td>
-            <td>${p.invoice_no || '-'}</td>
-            <td>${formatMoney(p.amount_ht)}</td>
-            <td>${p.vat_percent}%</td>
-            <td style="font-weight:600">${formatMoney(p.amount_ttc)}</td>
-            <td>${statusBadge}</td>
-            <td>
-                <i class="fas fa-edit" data-edit-purchase="${p.id}" style="cursor:pointer;margin-right:8px" title="Modifier"></i>
-                <i class="fas fa-trash" data-del-purchase="${p.id}" style="cursor:pointer;color:var(--danger)" title="Supprimer"></i>
-            </td>
+            <td>${formatDate(p.date)}</td>
+            <td>${p.fournisseur || '-'}</td>
+            <td>${p.numero_facture || '-'}</td>
+            <td style="font-weight:600">${montant}</td>
+            <td>${p.nb_articles || 0} article(s)</td>
+            <td>${p.description || '-'}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -153,26 +152,33 @@ function renderPurchases(searchText = '', filterSupplier = '', filterStatus = ''
  * Affiche la liste des dépenses
  * Explication: Montre les dépenses opérationnelles avec catégories
  */
-function renderExpenses(searchText = '', filterCategory = '') {
+function renderExpenses(searchText = '') {
     const tbody = $('expensesTable');
+    if (!tbody) return;
     tbody.innerHTML = '';
+
+    if (!expenses || expenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Aucune dépense enregistrée</td></tr>';
+        return;
+    }
 
     expenses.forEach(e => {
         const matchSearch = searchText === '' ||
-            (e.description + ' ' + e.category).toLowerCase().includes(searchText.toLowerCase());
-        const matchCategory = filterCategory === '' || filterCategory === e.category;
+            (e.description + ' ' + (e.type_mouvement || '')).toLowerCase().includes(searchText.toLowerCase());
 
-        if (!matchSearch || !matchCategory) return;
+        if (!matchSearch) return;
+
+        const montant = e.devise === 'CDF' 
+            ? Math.round(e.montant).toLocaleString('fr-FR') + ' FC'
+            : '$' + parseFloat(e.montant).toFixed(2);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${formatDate(e.expense_date)}</td>
-            <td><span class="badge">${e.category}</span></td>
-            <td>${e.description}</td>
-            <td style="font-weight:600">${formatMoney(e.amount)}</td>
-            <td>${e.payment_method}</td>
+            <td>${formatDate(e.date)}</td>
+            <td><span class="badge">${e.type_mouvement || 'Dépense'}</span></td>
+            <td>${e.description || '-'}</td>
+            <td style="font-weight:600">${montant}</td>
             <td>
-                <i class="fas fa-edit" data-edit-expense="${e.id}" style="cursor:pointer;margin-right:8px" title="Modifier"></i>
                 <i class="fas fa-trash" data-del-expense="${e.id}" style="cursor:pointer;color:var(--danger)" title="Supprimer"></i>
             </td>
         `;
@@ -261,29 +267,35 @@ function renderRecentTransactions() {
  * Met à jour les statistiques affichées
  * Explication: Calcule et affiche les totaux
  */
-function updateStats() {
-    const currentMonth = new Date();
+function updateStats(stats) {
+    if (!stats) return;
     
-    // Filtre les transactions du mois actuel
-    const monthPurchases = purchases.filter(p => {
-        const date = new Date(p.purchase_date);
-        return date.getMonth() === currentMonth.getMonth() && date.getFullYear() === currentMonth.getFullYear();
-    });
+    // Formater les montants avec devise
+    const formatCurrency = (cdf, usd) => {
+        let result = '';
+        if (cdf > 0) result += Math.round(cdf).toLocaleString('fr-FR') + ' FC';
+        if (usd > 0) {
+            if (result) result += ' + ';
+            result += '$' + usd.toFixed(2);
+        }
+        return result || '0 FC';
+    };
 
-    const monthExpenses = expenses.filter(e => {
-        const date = new Date(e.expense_date);
-        return date.getMonth() === currentMonth.getMonth() && date.getFullYear() === currentMonth.getFullYear();
-    });
-
-    // Calcule les totaux (on suppose que les revenus viennent de la vente)
-    const totalExpenses = monthExpenses.reduce((sum, e) => sum + e.amount, 0) + 
-                          monthPurchases.reduce((sum, p) => sum + p.amount_ttc, 0);
-
-    // Affiche les statistiques
-    $('stat-revenue').textContent = formatMoney(5000); // À remplacer par données réelles
-    $('stat-expenses').textContent = formatMoney(totalExpenses);
-    $('stat-profit').textContent = formatMoney(5000 - totalExpenses);
-    $('stat-pending').textContent = purchases.filter(p => p.payment_status === 'pending').length;
+    // Revenus
+    $('stat-revenue').textContent = formatCurrency(stats.revenus_cdf || 0, stats.revenus_usd || 0);
+    
+    // Dépenses (achats + dépenses)
+    const total_depenses_cdf = (stats.achats_cdf || 0) + (stats.depenses_cdf || 0);
+    const total_depenses_usd = (stats.achats_usd || 0) + (stats.depenses_usd || 0);
+    $('stat-expenses').textContent = formatCurrency(total_depenses_cdf, total_depenses_usd);
+    
+    // Bénéfice
+    const benefice_cdf = (stats.revenus_cdf || 0) - total_depenses_cdf;
+    const benefice_usd = (stats.revenus_usd || 0) - total_depenses_usd;
+    $('stat-profit').textContent = formatCurrency(benefice_cdf, benefice_usd);
+    
+    // Factures en attente
+    $('stat-pending').textContent = stats.factures_attente || 0;
 }
 
 /**
@@ -313,19 +325,29 @@ function updateSupplierSelect() {
  * - Répartition des dépenses par catégorie
  * - Flux de trésorerie sur 30 jours
  */
-function initCharts() {
+function initCharts(data) {
+    if (!data) return;
+    
+    const stats = data.stats || {};
+    const flux = data.flux_tresorerie || [];
+    const categories = data.categories_depenses || [];
+    
     // Graphique 1: Revenu vs Dépenses
     const ctx1 = $('chartRevenue');
     if (ctx1) {
         if (chartsInstances.revenue) chartsInstances.revenue.destroy();
+        
+        const revenus = (stats.revenus_cdf || 0) / 1000; // Convertir en milliers
+        const depenses = ((stats.achats_cdf || 0) + (stats.depenses_cdf || 0)) / 1000;
+        const benefice = revenus - depenses;
         
         chartsInstances.revenue = new Chart(ctx1, {
             type: 'bar',
             data: {
                 labels: ['Revenu', 'Dépenses', 'Bénéfice'],
                 datasets: [{
-                    label: 'Ce mois',
-                    data: [5000, 2500, 2500],
+                    label: 'Ce mois (milliers FC)',
+                    data: [revenus, depenses, benefice],
                     backgroundColor: ['#10b981', '#ef4444', '#2563eb']
                 }]
             },
@@ -342,13 +364,23 @@ function initCharts() {
     if (ctx2) {
         if (chartsInstances.expenses) chartsInstances.expenses.destroy();
 
-        const categories = {};
-        expenses.forEach(e => {
-            categories[e.category] = (categories[e.category] || 0) + e.amount;
-        });
+        const labels = categories.map(c => c.categorie);
+        const values = categories.map(c => c.montant_cdf);
 
         chartsInstances.expenses = new Chart(ctx2, {
             type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#2563eb', '#8b5cf6']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
             data: {
                 labels: Object.keys(categories),
                 datasets: [{
@@ -677,4 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Marquer comme payé - À implémenter');
         }
     });
+
+    // Charger les données au démarrage
+    loadTreasuryData();
 });
