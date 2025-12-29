@@ -37,16 +37,7 @@ const formatDate = (date) => {
     return new Date(date).toLocaleDateString('fr-FR');
 };
 
-/**
- * Calcule la TVA et le montant TTC
- * Explication: Ajoute la TVA au montant HT
- */
-function calculateTotalAmount() {
-    const ht = parseFloat($('p-amount-ht').value) || 0;
-    const vat = parseFloat($('p-vat').value) || 0;
-    const ttc = ht * (1 + vat / 100);
-    $('p-amount-ttc').value = ttc.toFixed(2);
-}
+// Fonction calculateTotalAmount supprimée - plus de TVA dans le formulaire
 
 // ===== API CALLS =====
 
@@ -121,11 +112,32 @@ function renderPurchases(searchText = '') {
     tbody.innerHTML = '';
 
     if (!purchases || purchases.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Aucun achat enregistré</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Aucun achat enregistré</td></tr>';
         return;
     }
 
+    // Traduire les statuts
+    const statutLabels = {
+        'payee': 'Payé',
+        'en_attente': 'En attente',
+        'partiellement_payee': 'Partiel',
+        'paid': 'Payé',
+        'pending': 'En attente',
+        'partial': 'Partiel'
+    };
+
+    // Traduire les catégories
+    const categoryLabels = {
+        'stock': 'Stock',
+        'fournitures': 'Fournitures',
+        'equipement': 'Équipement',
+        'services': 'Services',
+        'autre': 'Autre'
+    };
+
     purchases.forEach(p => {
+        console.log('Achat:', p.fournisseur, '| Catégorie:', p.categorie, '| Statut:', p.statut);
+        
         const matchSearch = searchText === '' ||
             (p.fournisseur + ' ' + (p.numero_facture || '')).toLowerCase().includes(searchText.toLowerCase());
 
@@ -135,13 +147,17 @@ function renderPurchases(searchText = '') {
             ? Math.round(p.montant).toLocaleString('fr-FR') + ' FC'
             : '$' + parseFloat(p.montant).toFixed(2);
 
+        const statut = statutLabels[p.statut] || p.statut || '-';
+        const categorie = categoryLabels[p.categorie] || p.categorie || 'Non défini';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(p.date)}</td>
             <td>${p.fournisseur || '-'}</td>
+            <td><span class="badge">${categorie}</span></td>
             <td>${p.numero_facture || '-'}</td>
             <td style="font-weight:600">${montant}</td>
-            <td>${p.nb_articles || 0} article(s)</td>
+            <td><span class="badge ${p.statut === 'payee' || p.statut === 'paid' ? 'success' : ''}">${statut}</span></td>
             <td>${p.description || '-'}</td>
         `;
         tbody.appendChild(tr);
@@ -158,13 +174,13 @@ function renderExpenses(searchText = '') {
     tbody.innerHTML = '';
 
     if (!expenses || expenses.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Aucune dépense enregistrée</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Aucune dépense enregistrée</td></tr>';
         return;
     }
 
     expenses.forEach(e => {
         const matchSearch = searchText === '' ||
-            (e.description + ' ' + (e.type_mouvement || '')).toLowerCase().includes(searchText.toLowerCase());
+            (e.description + ' ' + (e.type_mouvement || '') + ' ' + (e.categorie || '')).toLowerCase().includes(searchText.toLowerCase());
 
         if (!matchSearch) return;
 
@@ -172,12 +188,21 @@ function renderExpenses(searchText = '') {
             ? Math.round(e.montant).toLocaleString('fr-FR') + ' FC'
             : '$' + parseFloat(e.montant).toFixed(2);
 
+        // Traduire le mode de paiement
+        const modePaiement = {
+            'cash': 'Espèces',
+            'bank': 'Virement',
+            'check': 'Chèque',
+            'card': 'Carte'
+        }[e.mode_paiement] || e.mode_paiement || 'Espèces';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(e.date)}</td>
-            <td><span class="badge">${e.type_mouvement || 'Dépense'}</span></td>
+            <td><span class="badge">${e.categorie || e.type_mouvement || 'Dépense'}</span></td>
             <td>${e.description || '-'}</td>
             <td style="font-weight:600">${montant}</td>
+            <td>${modePaiement}</td>
             <td>
                 <i class="fas fa-trash" data-del-expense="${e.id}" style="cursor:pointer;color:var(--danger)" title="Supprimer"></i>
             </td>
@@ -370,24 +395,10 @@ function initCharts(data) {
         chartsInstances.expenses = new Chart(ctx2, {
             type: 'doughnut',
             data: {
-                labels: labels,
+                labels: labels.length > 0 ? labels : ['Aucune dépense'],
                 datasets: [{
-                    data: values,
-                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#2563eb', '#8b5cf6']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-            data: {
-                labels: Object.keys(categories),
-                datasets: [{
-                    data: Object.values(categories),
-                    backgroundColor: [
-                        '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
-                    ]
+                    data: values.length > 0 ? values : [1],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#2563eb', '#8b5cf6', '#ec4899']
                 }]
             },
             options: {
@@ -436,30 +447,33 @@ function initCharts(data) {
  * @returns {boolean} - true si succès
  */
 async function savePurchase(purchaseData) {
-    if (!purchaseData.supplier_id || !purchaseData.amount_ht) {
-        alert('Veuillez remplir les champs obligatoires');
+    if (!purchaseData.fournisseur || !purchaseData.montant_total) {
+        alert('Veuillez remplir les champs obligatoires (fournisseur et montant)');
         return false;
     }
 
     try {
-        const response = await fetch('save_purchase.php', {
+        const response = await fetch('assets/Api/addAchat.php', {
             method: 'POST',
-            body: new FormData(Object.assign(new FormData(), purchaseData))
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(purchaseData)
         });
 
         const result = await response.json();
 
         if (result.success) {
             alert('Achat enregistré');
-            loadPurchases();
+            loadTreasuryData();
             return true;
         } else {
-            alert('Erreur: ' + result.message);
+            alert('Erreur: ' + (result.message || 'Échec de l\'enregistrement'));
             return false;
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de l\'enregistrement');
+        alert('Erreur de connexion');
         return false;
     }
 }
@@ -470,29 +484,48 @@ async function savePurchase(purchaseData) {
  * @returns {boolean} - true si succès
  */
 async function saveExpense(expenseData) {
-    if (!expenseData.category || !expenseData.amount) {
-        alert('Veuillez remplir les champs obligatoires');
+    // Mapper les champs du formulaire vers l'API
+    const dataToSend = {
+        type: 'depense',
+        montant: expenseData.amount || expenseData.montant || 0,
+        devise: expenseData.devise || 'CDF',
+        description: expenseData.description || '',
+        categorie: expenseData.category || 'autre',
+        mode_paiement: expenseData.payment_method || 'cash'
+    };
+    
+    if (!dataToSend.montant || dataToSend.montant <= 0) {
+        alert('Veuillez entrer un montant valide');
+        return false;
+    }
+
+    if (!dataToSend.categorie || dataToSend.categorie === '') {
+        alert('Veuillez sélectionner une catégorie');
         return false;
     }
 
     try {
-        const response = await fetch('save_expense.php', {
+        const response = await fetch('assets/Api/addDepense.php', {
             method: 'POST',
-            body: new FormData(Object.assign(new FormData(), expenseData))
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dataToSend)
         });
 
         const result = await response.json();
 
         if (result.success) {
             alert('Dépense enregistrée');
-            loadExpenses();
+            loadTreasuryData();
             return true;
         } else {
-            alert('Erreur: ' + result.message);
+            alert('Erreur: ' + (result.message || 'Échec de l\'enregistrement'));
             return false;
         }
     } catch (error) {
         console.error('Erreur:', error);
+        alert('Erreur de connexion');
         return false;
     }
 }
@@ -529,16 +562,19 @@ async function deleteExpense(expenseId) {
     if (!confirm('Confirmer la suppression ?')) return false;
 
     try {
-        const response = await fetch(`delete_expense.php?id=${expenseId}`);
+        const response = await fetch(`assets/Api/deleteDepense.php?id=${expenseId}`);
         const result = await response.json();
 
         if (result.success) {
             alert('Dépense supprimée');
-            loadExpenses();
+            loadTreasuryData();
             return true;
+        } else {
+            alert('Erreur: ' + (result.message || 'Échec de la suppression'));
         }
     } catch (error) {
         console.error('Erreur:', error);
+        alert('Erreur de connexion');
     }
     return false;
 }
@@ -548,10 +584,8 @@ async function deleteExpense(expenseId) {
 document.addEventListener('DOMContentLoaded', () => {
     $('year').textContent = new Date().getFullYear();
 
-    // Charger les données
-    loadPurchases();
-    loadExpenses();
-    loadSuppliers();
+    // Charger les données de trésorerie
+    loadTreasuryData();
 
     // ===== GESTION DES ONGLETS =====
     document.querySelectorAll('.tab').forEach(btn => {
@@ -588,67 +622,76 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ===== CALCUL TVA =====
-    $('p-amount-ht').addEventListener('change', calculateTotalAmount);
-    $('p-vat').addEventListener('change', calculateTotalAmount);
+    // ===== CALCUL TVA ===== (désactivé - champs supprimés)
 
     // ===== BOUTONS PRINCIPAUX =====
 
-    $('btn-add-purchase').addEventListener('click', () => {
-        document.querySelector('.tab[data-tab="purchases"]').click();
-    });
+    if ($('btn-add-purchase')) {
+        $('btn-add-purchase').addEventListener('click', () => {
+            document.querySelector('.tab[data-tab="purchases"]').click();
+        });
+    }
 
-    $('btn-add-expense').addEventListener('click', () => {
-        document.querySelector('.tab[data-tab="expenses"]').click();
-    });
+    if ($('btn-add-expense')) {
+        $('btn-add-expense').addEventListener('click', () => {
+            document.querySelector('.tab[data-tab="expenses"]').click();
+        });
+    }
 
     // Sauvegarder achat
-    $('p-save').addEventListener('click', async () => {
-        const purchaseData = {
-            supplier_id: $('p-supplier').value,
-            category: $('p-category').value,
-            invoice_no: $('p-invoice-no').value,
-            purchase_date: $('p-date').value,
-            amount_ht: parseFloat($('p-amount-ht').value) || 0,
-            vat_percent: parseFloat($('p-vat').value) || 0,
-            amount_ttc: parseFloat($('p-amount-ttc').value) || 0,
-            payment_status: $('p-payment-status').value,
-            payment_terms: $('p-terms').value,
-            notes: $('p-notes').value
-        };
+    if ($('p-save')) {
+        $('p-save').addEventListener('click', async () => {
+            console.log('Bouton achat cliqué');
+            const purchaseData = {
+                fournisseur: $('p-supplier')?.value || '',
+                category: $('p-category')?.value || '',
+                invoice_no: $('p-invoice-no')?.value || '',
+                purchase_date: $('p-date')?.value || '',
+                montant_total: parseFloat($('p-amount')?.value) || 0,
+                devise: $('p-devise')?.value || 'CDF',
+                payment_status: $('p-payment-status')?.value || 'pending',
+                notes: $('p-notes')?.value || ''
+            };
+            console.log('Données achat:', purchaseData);
 
-        if (await savePurchase(purchaseData)) {
-            $('p-supplier').value = '';
-            $('p-category').value = '';
-            $('p-invoice-no').value = '';
-            $('p-date').value = '';
-            $('p-amount-ht').value = '';
-            $('p-vat').value = '20';
-            $('p-notes').value = '';
-            calculateTotalAmount();
-        }
-    });
+            if (await savePurchase(purchaseData)) {
+                if ($('p-supplier')) $('p-supplier').value = '';
+                if ($('p-category')) $('p-category').value = '';
+                if ($('p-invoice-no')) $('p-invoice-no').value = '';
+                if ($('p-date')) $('p-date').value = '';
+                if ($('p-amount')) $('p-amount').value = '';
+                if ($('p-devise')) $('p-devise').value = 'CDF';
+                if ($('p-notes')) $('p-notes').value = '';
+            }
+        });
+    }
 
     // Sauvegarder dépense
-    $('e-save').addEventListener('click', async () => {
-        const expenseData = {
-            category: $('e-category').value,
-            expense_date: $('e-date').value,
-            amount: parseFloat($('e-amount').value) || 0,
-            payment_method: $('e-payment-method').value,
-            description: $('e-description').value
-        };
+    if ($('e-save')) {
+        $('e-save').addEventListener('click', async () => {
+            console.log('Bouton dépense cliqué');
+            const expenseData = {
+                category: $('e-category')?.value || 'depense',
+                expense_date: $('e-date')?.value || '',
+                amount: parseFloat($('e-amount')?.value) || 0,
+                devise: $('e-devise')?.value || 'CDF',
+                payment_method: $('e-payment-method')?.value || 'cash',
+                description: $('e-description')?.value || ''
+            };
+            console.log('Données dépense:', expenseData);
 
-        if (await saveExpense(expenseData)) {
-            $('e-category').value = '';
-            $('e-date').value = '';
-            $('e-amount').value = '';
-            $('e-description').value = '';
-        }
-    });
+            if (await saveExpense(expenseData)) {
+                if ($('e-category')) $('e-category').value = '';
+                if ($('e-date')) $('e-date').value = '';
+                if ($('e-amount')) $('e-amount').value = '';
+                if ($('e-description')) $('e-description').value = '';
+            }
+        });
+    }
 
     // Export
-    $('btn-export').addEventListener('click', () => {
+    if ($('btn-export')) {
+        $('btn-export').addEventListener('click', () => {
         let csv = 'Date;Type;Description;Montant;Statut\n';
         
         purchases.forEach(p => {
@@ -666,29 +709,40 @@ document.addEventListener('DOMContentLoaded', () => {
         a.download = 'tresorerie_' + new Date().getTime() + '.csv';
         a.click();
         URL.revokeObjectURL(url);
-    });
+        });
+    }
 
     // ===== FILTRES =====
 
-    $('search-purchases').addEventListener('input', e => {
-        renderPurchases(e.target.value, $('filter-supplier').value, $('filter-purchase-status').value);
-    });
+    if ($('search-purchases')) {
+        $('search-purchases').addEventListener('input', e => {
+            renderPurchases(e.target.value);
+        });
+    }
 
-    $('filter-supplier').addEventListener('change', e => {
-        renderPurchases($('search-purchases').value, e.target.value, $('filter-purchase-status').value);
-    });
+    if ($('filter-supplier')) {
+        $('filter-supplier').addEventListener('change', e => {
+            renderPurchases($('search-purchases')?.value || '');
+        });
+    }
 
-    $('filter-purchase-status').addEventListener('change', e => {
-        renderPurchases($('search-purchases').value, $('filter-supplier').value, e.target.value);
-    });
+    if ($('filter-purchase-status')) {
+        $('filter-purchase-status').addEventListener('change', e => {
+            renderPurchases($('search-purchases')?.value || '');
+        });
+    }
 
-    $('search-expenses').addEventListener('input', e => {
-        renderExpenses(e.target.value, $('filter-expense-category').value);
-    });
+    if ($('search-expenses')) {
+        $('search-expenses').addEventListener('input', e => {
+            renderExpenses(e.target.value);
+        });
+    }
 
-    $('filter-expense-category').addEventListener('change', e => {
-        renderExpenses($('search-expenses').value, e.target.value);
-    });
+    if ($('filter-expense-category')) {
+        $('filter-expense-category').addEventListener('change', e => {
+            renderExpenses($('search-expenses')?.value || '');
+        });
+    }
 
     // ===== ACTIONS =====
 

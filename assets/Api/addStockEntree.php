@@ -38,7 +38,6 @@ if ($id_session <= 0) {
 
 if ($id_produit <= 0) {
     echo json_encode(['success' => false, 'message' => 'ID produit invalide']);
-     echo"$id_produit";
     exit;
 }
 
