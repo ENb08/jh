@@ -3,383 +3,650 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trésorerie - SuperMarket Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="assets/css/tresoreri.css">
+    <title>Trésorerie - J_Humble</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="assets/img/favicon.ico" type="image/x-icon">
+     <link rel="stylesheet" href="assets/css/tresoreri.css">
 </head>
 <body>
-    <div class="app">
-        <aside class="sidebar" aria-label="Navigation principale">
-            <div class="brand">
-                <div class="logo">SP</div>
-                <div>
-                    <div style="font-weight:700">SuperMarket Pro</div>
-                    <div style="font-size:12px;color:var(--muted)">Trésorerie</div>
+    <!-- Overlay pour mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-store"></i>
+            <h1>J_Humble</h1>
+        </div>
+        
+        <nav class="menu" aria-label="Menu principal">
+            <a href="acceuil.html" class="menu-item"><i class="fas fa-home"></i> Tableau de Bord</a>
+            <a href="caisse.html" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
+            <a href="stock.html" class="menu-item"><i class="fas fa-box"></i> Gestion Stock</a>
+            <a href="tresoreri.html" class="menu-item active" aria-current="page"><i class="fas fa-chart-line"></i> Trésorerie</a>
+           
+            
+            <div class="menu-divider"></div>
+            
+           
+            <a href="#" class="menu-item" id="btn-logout" style="color: #e74c3c;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=random" alt="User">
+                <div class="user-card-info">
+                    <div class="user-card-name" id="userName">Admin</div>
+                    <div class="user-card-role" id="userRole">Administrateur</div>
                 </div>
             </div>
+        </div>
+    </aside>
+    <!-- ========== FIN SIDEBAR ========== -->
 
-            <nav>
-                <a href="acceuil.html" class="menu-item"><i class="fas fa-home"></i> Tableau de Bord</a>
-                <a href="pos.html" class="menu-item"><i class="fas fa-cash-register"></i> Vente / Caisse</a>
-                <a href="stock.html" class="menu-item"><i class="fas fa-box"></i> Gestion Stock</a>
-                <a href="tresoreri.html" class="menu-item active"><i class="fas fa-wallet"></i> Trésorerie</a>
-                <a href="users.html" class="menu-item"><i class="fas fa-users"></i> Utilisateurs</a>
-            </nav>
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2><i class="fas fa-wallet"></i> Gestion de la Trésorerie</h2>
+            </div>
+            <div class="topbar-actions">
+                <button class="topbar-btn outline" onclick="loadTreasuryData()">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Actualiser</span>
+                </button>
+                <button class="topbar-btn success" onclick="exportData()">
+                    <i class="fas fa-download"></i>
+                    <span>Exporter</span>
+                </button>
+            </div>
+        </header>
 
-            <div class="small">© <span id="year"></span> SuperMarket Pro</div>
-        </aside>
-
-        <main class="main" role="main">
-            <div class="topbar">
-                <h1><i class="fas fa-wallet"></i> Gestion de la Trésorerie</h1>
-                <div class="controls">
-                    <button class="btn" id="btn-add-purchase"><i class="fas fa-plus"></i> Achat</button>
-                    <button class="btn" id="btn-add-expense"><i class="fas fa-plus"></i> Dépense</button>
-                    <button class="btn secondary" id="btn-export"><i class="fas fa-file-export"></i> Export</button>
+        <div class="container">
+            <!-- Carte Bénéfice Principal -->
+            <div class="benefice-card" id="benefice-card">
+                <div class="benefice-item">
+                    <div class="label"><i class="fas fa-shopping-cart"></i> Chiffre d'Affaires</div>
+                    <div class="value" id="chiffre-affaires">0 FC</div>
+                    <div class="formula">Total des ventes</div>
+                </div>
+                <div class="benefice-item">
+                    <div class="label"><i class="fas fa-chart-line"></i> Bénéfice Brut</div>
+                    <div class="value" id="benefice-brut">0 FC</div>
+                    <div class="formula">Ventes - Coût des produits</div>
+                </div>
+                <div class="benefice-item">
+                    <div class="label"><i class="fas fa-minus-circle"></i> Total Charges</div>
+                    <div class="value" id="total-charges">0 FC</div>
+                    <div class="formula">Achats + Dépenses</div>
+                </div>
+                <div class="benefice-item">
+                    <div class="label"><i class="fas fa-trophy"></i> Bénéfice Net</div>
+                    <div class="value" id="benefice-net">0 FC</div>
+                    <div class="formula">Bénéfice Brut - Charges</div>
                 </div>
             </div>
-
-            <!-- STATS -->
-            <div class="stats">
+            
+            <!-- Stats Cards -->
+            <div class="stats-grid">
                 <div class="stat-card success">
-                    <h4>Revenus Totaux</h4>
-                    <div class="value" id="stat-revenue">0 €</div>
-                    <div class="small-muted">Ce mois</div>
+                    <div class="label"><i class="fas fa-receipt"></i> Ventes du mois</div>
+                    <div class="value" id="stat-ventes">0</div>
+                    <div class="sub-value" id="stat-nb-ventes">0 transactions</div>
                 </div>
-                <div class="stat-card danger">
-                    <h4>Dépenses Totales</h4>
-                    <div class="value" id="stat-expenses">0 €</div>
-                    <div class="small-muted">Ce mois</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Bénéfice Net</h4>
-                    <div class="value" id="stat-profit">0 €</div>
-                    <div class="small-muted">Ce mois</div>
+                <div class="stat-card info">
+                    <div class="label"><i class="fas fa-boxes"></i> Achats Stock</div>
+                    <div class="value" id="stat-achats">0 FC</div>
+                    <div class="sub-value" id="stat-nb-achats">0 entrées</div>
                 </div>
                 <div class="stat-card warning">
-                    <h4>Factures En Attente</h4>
-                    <div class="value" id="stat-pending">0</div>
-                    <div class="small-muted">À payer</div>
+                    <div class="label"><i class="fas fa-money-bill-wave"></i> Dépenses</div>
+                    <div class="value" id="stat-depenses">0 FC</div>
+                    <div class="sub-value" id="stat-nb-depenses">0 dépenses</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="label"><i class="fas fa-percentage"></i> Marge Moyenne</div>
+                    <div class="value" id="stat-marge">0%</div>
+                    <div class="sub-value">Sur les ventes</div>
                 </div>
             </div>
-
-            <!-- TABS -->
-            <div class="tabs" role="tablist">
-                <button class="tab active" data-tab="dashboard"><i class="fas fa-chart-line"></i> Tableau de Bord</button>
-                <button class="tab" data-tab="purchases"><i class="fas fa-shopping-cart"></i> Achats</button>
-                <button class="tab" data-tab="expenses"><i class="fas fa-money-bill"></i> Dépenses</button>
-                <button class="tab" data-tab="invoices"><i class="fas fa-file-invoice"></i> Factures</button>
-                <button class="tab" data-tab="reports"><i class="fas fa-chart-bar"></i> Rapports</button>
+            
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" data-tab="achats"><i class="fas fa-truck"></i> Achats Stock</button>
+                <button class="tab" data-tab="depenses"><i class="fas fa-file-invoice-dollar"></i> Dépenses</button>
+                <button class="tab" data-tab="rapport"><i class="fas fa-chart-pie"></i> Rapport</button>
             </div>
-
-            <!-- TAB: DASHBOARD -->
-            <section id="tab-dashboard" class="panel" role="tabpanel" aria-labelledby="tab-dashboard">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                    <div>
-                        <h3>Revenu vs Dépenses</h3>
-                        <div class="chart-container">
-                            <canvas id="chartRevenue"></canvas>
-                        </div>
-                    </div>
-                    <div>
-                        <h3>Catégories de Dépenses</h3>
-                        <div class="chart-container">
-                            <canvas id="chartExpenses"></canvas>
-                        </div>
-                    </div>
+            
+            <!-- Tab: Achats -->
+            <div class="tab-content active" id="tab-achats">
+                <div class="section-header">
+                    <h2><i class="fas fa-plus-circle"></i> Nouvel Achat</h2>
                 </div>
-
-                <h3 style="margin-top:20px">Flux de Trésorerie (30 jours)</h3>
-                <div class="chart-container">
-                    <canvas id="chartCashFlow"></canvas>
-                </div>
-
-                <h3 style="margin-top:20px">Transactions Récentes</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                            <th>Montant</th>
-                            <th>Statut</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recentTransactionsTable"></tbody>
-                </table>
-            </section>
-
-            <!-- TAB: PURCHASES -->
-            <section id="tab-purchases" class="panel" role="tabpanel" aria-labelledby="tab-purchases" style="display:none">
-                <h3>Enregistrer un Achat</h3>
                 
-                <div class="form-row">
-                    <div>
-                        <div class="form-label">Fournisseur *</div>
-                        <input id="p-supplier" class="input" type="text" placeholder="Nom du fournisseur" />
+                <form id="form-achat" onsubmit="return saveAchat(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fournisseur *</label>
+                            <input type="text" id="achat-fournisseur" placeholder="Nom du fournisseur" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Catégorie</label>
+                            <select id="achat-categorie">
+                                <option value="stock">Stock / Marchandises</option>
+                                <option value="fournitures">Fournitures bureau</option>
+                                <option value="equipement">Équipement</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>N° Facture</label>
+                            <input type="text" id="achat-facture" placeholder="FAC-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Montant *</label>
+                            <input type="number" id="achat-montant" placeholder="0" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Devise</label>
+                            <select id="achat-devise">
+                                <option value="CDF">FC (Franc Congolais)</option>
+                                <option value="USD">$ (Dollar US)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Statut</label>
+                            <select id="achat-statut">
+                                <option value="payee">Payé</option>
+                                <option value="en_attente">En attente</option>
+                                <option value="partiellement_payee">Partiellement payé</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <div class="form-label">Catégorie *</div>
-                        <select id="p-category" class="input">
-                            <option value="">-- Sélectionner --</option>
-                            <option value="alimentaire">Alimentaire</option>
-                            <option value="hygiene">Hygiène & Nettoyage</option>
-                            <option value="boisson">Boissons</option>
-                            <option value="autre">Autre</option>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Description</label>
+                            <textarea id="achat-description" rows="2" placeholder="Description de l'achat..."></textarea>
+                        </div>
+                        <div class="form-group" style="align-self: end;">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer l'achat</button>
+                        </div>
                     </div>
+                </form>
+                
+                <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);">
+                
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> Historique des Achats</h2>
+                    <input type="text" id="search-achats" placeholder="Rechercher..." style="padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 8px;">
                 </div>
-
-                <div class="form-row">
-                    <div>
-                        <div class="form-label">Numéro Facture</div>
-                        <input id="p-invoice-no" class="input" placeholder="INV-2024-001" />
-                    </div>
-                    <div>
-                        <div class="form-label">Date d'Achat *</div>
-                        <input id="p-date" class="input" type="date" />
-                    </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Fournisseur</th>
+                                <th>Catégorie</th>
+                                <th>N° Facture</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-achats">
+                            <tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i><br>Aucun achat enregistré</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-
-                <div class="form-row">
-                    <div>
-                        <div class="form-label">Montant *</div>
-                        <input id="p-amount" class="input" type="number" min="0" step="0.01" placeholder="0.00" />
-                    </div>
-                    <div>
-                        <div class="form-label">Devise *</div>
-                        <select id="p-devise" class="input">
-                            <option value="CDF">FC (Franc Congolais)</option>
-                            <option value="USD">USD (Dollar)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div>
-                        <div class="form-label">Statut Paiement</div>
-                        <select id="p-payment-status" class="input">
-                            <option value="pending">En attente</option>
-                            <option value="paid">Payé</option>
-                            <option value="partially">Partiellement payé</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row full">
-                    <div class="form-label">Notes</div>
-                    <textarea id="p-notes" class="input" style="min-height:80px" placeholder="Notes supplémentaires..."></textarea>
-                </div>
-
-                <button class="btn success" id="p-save"><i class="fas fa-save"></i> Enregistrer l'Achat</button>
-
-                <hr style="margin:30px 0">
-
-                <h3>Historique des Achats</h3>
-                <div class="filters">
-                    <input id="search-purchases" class="input" type="search" placeholder="Rechercher..." />
-                    <select id="filter-supplier" class="input" style="width:140px">
-                        <option value="">Tous les fournisseurs</option>
-                    </select>
-                    <select id="filter-purchase-status" class="input" style="width:140px">
-                        <option value="">Tous les statuts</option>
-                        <option value="pending">En attente</option>
-                        <option value="paid">Payé</option>
-                    </select>
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Fournisseur</th>
-                            <th>Catégorie</th>
-                            <th>N° Facture</th>
-                            <th>Montant</th>
-                            <th>Statut</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody id="purchasesTable"></tbody>
-                </table>
-            </section>
-
-            <!-- TAB: EXPENSES -->
-            <section id="tab-expenses" class="panel" role="tabpanel" aria-labelledby="tab-expenses" style="display:none">
-                <h3>Enregistrer une Dépense</h3>
-
-                <div class="form-row">
-                    <div>
-                        <div class="form-label">Catégorie *</div>
-                        <select id="e-category" class="input">
-                            <option value="">-- Sélectionner --</option>
-                            <option value="loyer">Loyer</option>
-                            <option value="salaires">Salaires</option>
-                            <option value="utilities">Électricité/Eau</option>
-                            <option value="internet">Internet/Téléphone</option>
-                            <option value="maintenance">Maintenance</option>
-                            <option value="assurance">Assurance</option>
-                            <option value="fournitures">Fournitures Bureau</option>
-                            <option value="marketing">Marketing</option>
-                            <option value="autre">Autre</option>
-                        </select>
-                    </div>
-                    <div>
-                        <div class="form-label">Date *</div>
-                        <input id="e-date" class="input" type="date" />
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div>
-                        <div class="form-label">Montant *</div>
-                        <input id="e-amount" class="input" type="number" min="0" step="0.01" placeholder="0.00" />
-                    </div>
-                    <div>
-                        <div class="form-label">Devise *</div>
-                        <select id="e-devise" class="input">
-                            <option value="CDF">FC (Franc Congolais)</option>
-                            <option value="USD">USD (Dollar)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <div class="form-label">Mode de Paiement</div>
-                        <select id="e-payment-method" class="input">
-                            <option value="cash">Espèces</option>
-                            <option value="bank">Virement Bancaire</option>
-                            <option value="check">Chèque</option>
-                            <option value="card">Carte Bancaire</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row full">
-                    <div class="form-label">Description</div>
-                    <textarea id="e-description" class="input" style="min-height:80px" placeholder="Description de la dépense..."></textarea>
-                </div>
-
-                <button class="btn success" id="e-save"><i class="fas fa-save"></i> Enregistrer la Dépense</button>
-
-                <hr style="margin:30px 0">
-
-                <h3>Dépenses du Mois</h3>
-                <div class="filters">
-                    <input id="search-expenses" class="input" type="search" placeholder="Rechercher..." />
-                    <select id="filter-expense-category" class="input" style="width:140px">
-                        <option value="">Toutes les catégories</option>
-                        <option value="loyer">Loyer</option>
-                        <option value="salaires">Salaires</option>
-                        <option value="utilities">Utilities</option>
-                    </select>
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Catégorie</th>
-                            <th>Description</th>
-                            <th>Montant</th>
-                            <th>Mode Paiement</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="expensesTable"></tbody>
-                </table>
-            </section>
-
-            <!-- TAB: INVOICES -->
-            <section id="tab-invoices" class="panel" role="tabpanel" aria-labelledby="tab-invoices" style="display:none">
-                <h3>Factures à Payer</h3>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Fournisseur</th>
-                            <th>Facture #</th>
-                            <th>Montant</th>
-                            <th>Échéance</th>
-                            <th>Statut</th>
-                            <th>Retard</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="invoicesTable"></tbody>
-                </table>
-            </section>
-
-            <!-- TAB: REPORTS -->
-            <section id="tab-reports" class="panel" role="tabpanel" aria-labelledby="tab-reports" style="display:none">
-                <div class="filters">
-                    <input id="report-date-from" type="date" class="input" />
-                    <input id="report-date-to" type="date" class="input" />
-                    <button class="btn" id="btn-generate-report"><i class="fas fa-file-pdf"></i> Générer Rapport</button>
-                </div>
-
-                <h3 style="margin-top:20px">Résumé Financier</h3>
-                <div class="stats">
-                    <div class="stat-card">
-                        <h4>Revenus</h4>
-                        <div class="value" id="report-revenue">0 €</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Achats</h4>
-                        <div class="value" id="report-purchases">0 €</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Dépenses</h4>
-                        <div class="value" id="report-expenses">0 €</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Résultat</h4>
-                        <div class="value" id="report-result">0 €</div>
-                    </div>
-                </div>
-
-                <h3 style="margin-top:20px">Détail par Catégorie</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Catégorie</th>
-                            <th>Montant</th>
-                            <th>% du Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reportTable"></tbody>
-                </table>
-            </section>
-        </main>
-    </div>
-
-    <!-- MODAL: Ajouter Achat -->
-    <div class="modal" id="modalPurchase">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3>Ajouter un Achat</h3>
-                <button class="modal-close" data-close="modalPurchase">&times;</button>
             </div>
-            <div style="padding:14px">
-                <p>Veuillez remplir le formulaire dans l'onglet "Achats"</p>
+            
+            <!-- Tab: Dépenses -->
+            <div class="tab-content" id="tab-depenses">
+                <div class="section-header">
+                    <h2><i class="fas fa-plus-circle"></i> Nouvelle Dépense</h2>
+                </div>
+                
+                <form id="form-depense" onsubmit="return saveDepense(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Catégorie *</label>
+                            <select id="depense-categorie" required>
+                                <option value="">-- Sélectionner --</option>
+                                <option value="salaire">Salaires</option>
+                                <option value="loyer">Loyer</option>
+                                <option value="electricite">Électricité</option>
+                                <option value="eau">Eau</option>
+                                <option value="transport">Transport</option>
+                                <option value="communication">Communication (Tel/Internet)</option>
+                                <option value="entretien">Entretien & Réparations</option>
+                                <option value="publicite">Publicité</option>
+                                <option value="taxes">Taxes & Impôts</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Montant *</label>
+                            <input type="number" id="depense-montant" placeholder="0" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Devise</label>
+                            <select id="depense-devise">
+                                <option value="CDF">FC (Franc Congolais)</option>
+                                <option value="USD">$ (Dollar US)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mode de paiement</label>
+                            <select id="depense-mode">
+                                <option value="cash">Espèces</option>
+                                <option value="bank">Virement bancaire</option>
+                                <option value="mobile">Mobile Money</option>
+                                <option value="cheque">Chèque</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Description *</label>
+                            <textarea id="depense-description" rows="2" placeholder="Description de la dépense..." required></textarea>
+                        </div>
+                        <div class="form-group" style="align-self: end;">
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-save"></i> Enregistrer la dépense</button>
+                        </div>
+                    </div>
+                </form>
+                
+                <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);">
+                
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> Historique des Dépenses</h2>
+                    <input type="text" id="search-depenses" placeholder="Rechercher..." style="padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Catégorie</th>
+                                <th>Description</th>
+                                <th>Montant</th>
+                                <th>Mode</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-depenses">
+                            <tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i><br>Aucune dépense enregistrée</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Tab: Rapport -->
+            <div class="tab-content" id="tab-rapport">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-bar"></i> Rapport Financier</h2>
+                    <div class="periode-selector">
+                        <button class="periode-btn active" data-periode="jour">Aujourd'hui</button>
+                        <button class="periode-btn" data-periode="semaine">Cette semaine</button>
+                        <button class="periode-btn" data-periode="mois">Ce mois</button>
+                        <button class="periode-btn" data-periode="annee">Cette année</button>
+                    </div>
+                </div>
+                
+                <div class="stats-grid" style="margin-top: 1rem;">
+                    <div class="stat-card success">
+                        <div class="label"><i class="fas fa-arrow-up"></i> Total Entrées</div>
+                        <div class="value" id="rapport-entrees">0 FC</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="label"><i class="fas fa-arrow-down"></i> Total Sorties</div>
+                        <div class="value" id="rapport-sorties">0 FC</div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="label"><i class="fas fa-balance-scale"></i> Solde</div>
+                        <div class="value" id="rapport-solde">0 FC</div>
+                    </div>
+                </div>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3><i class="fas fa-chart-bar"></i> Revenus vs Dépenses</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-revenus-depenses"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3><i class="fas fa-chart-pie"></i> Répartition des Dépenses</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-categories"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3><i class="fas fa-chart-line"></i> Évolution du Bénéfice (30 derniers jours)</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-evolution"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // ===== VARIABLES GLOBALES =====
+        let achats = [];
+        let depenses = [];
+        let stats = {};
+        let charts = {};
+        
+        // ===== SIDEBAR FUNCTIONS =====
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
 
-    <!-- MODAL: Ajouter Dépense -->
-    <div class="modal" id="modalExpense">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3>Ajouter une Dépense</h3>
-                <button class="modal-close" data-close="modalExpense">&times;</button>
-            </div>
-            <div style="padding:14px">
-                <p>Veuillez remplir le formulaire dans l'onglet "Dépenses"</p>
-            </div>
-        </div>
-    </div>
+        function logout() {
+            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
 
-    <script src="assets/js/script_treasury.js"></script>
+        function loadUserInfo() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.nom) {
+                document.getElementById('userName').textContent = user.nom;
+            }
+            if (user.role) {
+                document.getElementById('userRole').textContent = user.role;
+            }
+        }
+
+        // ===== UTILITAIRES =====
+        const formatMoney = (amount, devise = 'CDF') => {
+            if (devise === 'USD') return '$' + parseFloat(amount).toFixed(2);
+            return Math.round(amount).toLocaleString('fr-FR') + ' FC';
+        };
+        
+        const formatDate = (date) => new Date(date).toLocaleDateString('fr-FR');
+        
+        const categoryLabels = {
+            'stock': 'Stock', 'fournitures': 'Fournitures', 'equipement': 'Équipement',
+            'salaire': 'Salaires', 'loyer': 'Loyer', 'electricite': 'Électricité',
+            'eau': 'Eau', 'transport': 'Transport', 'communication': 'Communication',
+            'entretien': 'Entretien', 'publicite': 'Publicité', 'taxes': 'Taxes',
+            'autre': 'Autre', 'depense': 'Dépense'
+        };
+        
+        const statutLabels = {
+            'payee': { text: 'Payé', class: 'success' },
+            'en_attente': { text: 'En attente', class: 'warning' },
+            'partiellement_payee': { text: 'Partiel', class: 'info' }
+        };
+        
+        const modeLabels = {
+            'cash': 'Espèces', 'bank': 'Virement', 'mobile': 'Mobile Money', 'cheque': 'Chèque'
+        };
+        
+        // ===== CHARGEMENT DES DONNÉES =====
+        async function loadTreasuryData() {
+            try {
+                const response = await fetch('assets/Api/getTresorerie.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    achats = data.achats || [];
+                    depenses = data.depenses || [];
+                    stats = data.stats || {};
+                    
+                    updateBeneficeCard();
+                    updateStatsCards();
+                    renderAchats();
+                    renderDepenses();
+                    updateCharts(data);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+        
+        function updateBeneficeCard() {
+            const chiffreAffaires = stats.revenus_cdf || 0;
+            const beneficeBrut = stats.benefice_brut_cdf || 0;
+            const totalCharges = (stats.achats_cdf || 0) + (stats.depenses_cdf || 0);
+            const beneficeNet = beneficeBrut - totalCharges;
+            
+            document.getElementById('chiffre-affaires').textContent = formatMoney(chiffreAffaires);
+            document.getElementById('benefice-brut').textContent = formatMoney(beneficeBrut);
+            document.getElementById('total-charges').textContent = formatMoney(totalCharges);
+            document.getElementById('benefice-net').textContent = formatMoney(beneficeNet);
+            
+            document.getElementById('benefice-card').classList.toggle('negative', beneficeNet < 0);
+        }
+        
+        function updateStatsCards() {
+            document.getElementById('stat-ventes').textContent = formatMoney(stats.revenus_cdf || 0);
+            document.getElementById('stat-nb-ventes').textContent = (stats.nb_ventes || 0) + ' transactions';
+            document.getElementById('stat-achats').textContent = formatMoney(stats.achats_cdf || 0);
+            document.getElementById('stat-nb-achats').textContent = achats.length + ' entrées';
+            document.getElementById('stat-depenses').textContent = formatMoney(stats.depenses_cdf || 0);
+            document.getElementById('stat-nb-depenses').textContent = depenses.length + ' dépenses';
+            
+            const marge = stats.revenus_cdf > 0 ? ((stats.benefice_brut_cdf || 0) / stats.revenus_cdf * 100).toFixed(1) : 0;
+            document.getElementById('stat-marge').textContent = marge + '%';
+            
+            document.getElementById('rapport-entrees').textContent = formatMoney(stats.revenus_cdf || 0);
+            document.getElementById('rapport-sorties').textContent = formatMoney((stats.achats_cdf || 0) + (stats.depenses_cdf || 0));
+            document.getElementById('rapport-solde').textContent = formatMoney((stats.revenus_cdf || 0) - (stats.achats_cdf || 0) - (stats.depenses_cdf || 0));
+        }
+        
+        function renderAchats(searchText = '') {
+            const tbody = document.getElementById('table-achats');
+            const filtered = achats.filter(a => !searchText || (a.fournisseur + ' ' + (a.numero_facture || '')).toLowerCase().includes(searchText.toLowerCase()));
+            
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i><br>Aucun achat</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(a => {
+                const statut = statutLabels[a.statut] || { text: '-', class: '' };
+                return `<tr>
+                    <td>${formatDate(a.date)}</td>
+                    <td><strong>${a.fournisseur || '-'}</strong></td>
+                    <td><span class="badge info">${categoryLabels[a.categorie] || 'Stock'}</span></td>
+                    <td>${a.numero_facture || '-'}</td>
+                    <td><strong>${formatMoney(a.montant, a.devise)}</strong></td>
+                    <td><span class="badge ${statut.class}">${statut.text}</span></td>
+                    <td><button class="action-btn delete" onclick="deleteAchat(${a.id_mouvement || a.id_entree})"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
+            }).join('');
+        }
+        
+        function renderDepenses(searchText = '') {
+            const tbody = document.getElementById('table-depenses');
+            const filtered = depenses.filter(d => !searchText || (d.description + ' ' + (d.categorie || '')).toLowerCase().includes(searchText.toLowerCase()));
+            
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i><br>Aucune dépense</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(d => `<tr>
+                <td>${formatDate(d.date)}</td>
+                <td><span class="badge warning">${categoryLabels[d.categorie] || 'Dépense'}</span></td>
+                <td>${d.description || '-'}</td>
+                <td><strong>${formatMoney(d.montant, d.devise)}</strong></td>
+                <td>${modeLabels[d.mode_paiement] || 'Espèces'}</td>
+                <td><button class="action-btn delete" onclick="deleteDepense(${d.id_mouvement || d.id})"><i class="fas fa-trash"></i></button></td>
+            </tr>`).join('');
+        }
+        
+        async function saveAchat(event) {
+            event.preventDefault();
+            const data = {
+                fournisseur: document.getElementById('achat-fournisseur').value,
+                categorie: document.getElementById('achat-categorie').value,
+                numero_facture: document.getElementById('achat-facture').value,
+                montant: parseFloat(document.getElementById('achat-montant').value),
+                devise: document.getElementById('achat-devise').value,
+                statut: document.getElementById('achat-statut').value,
+                description: document.getElementById('achat-description').value
+            };
+            
+            try {
+                const res = await fetch('assets/Api/addAchat.php', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Achat enregistré!');
+                    document.getElementById('form-achat').reset();
+                    loadTreasuryData();
+                } else alert('Erreur: ' + result.message);
+            } catch (e) { alert('Erreur de connexion'); }
+            return false;
+        }
+        
+        async function saveDepense(event) {
+            event.preventDefault();
+            const data = {
+                type_mouvement: 'depense',
+                categorie: document.getElementById('depense-categorie').value,
+                montant: parseFloat(document.getElementById('depense-montant').value),
+                devise: document.getElementById('depense-devise').value,
+                mode_paiement: document.getElementById('depense-mode').value,
+                description: document.getElementById('depense-description').value
+            };
+            
+            try {
+                const res = await fetch('assets/Api/addDepense.php', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Dépense enregistrée!');
+                    document.getElementById('form-depense').reset();
+                    loadTreasuryData();
+                } else alert('Erreur: ' + result.message);
+            } catch (e) { alert('Erreur de connexion'); }
+            return false;
+        }
+        
+        async function deleteAchat(id) {
+            if (!confirm('Supprimer?')) return;
+            try {
+                const res = await fetch(`assets/Api/deleteDepense.php?id=${id}&type=achat`);
+                const result = await res.json();
+                if (result.success) loadTreasuryData();
+                else alert('Erreur: ' + result.message);
+            } catch (e) { console.error(e); }
+        }
+        
+        async function deleteDepense(id) {
+            if (!confirm('Supprimer?')) return;
+            try {
+                const res = await fetch(`assets/Api/deleteDepense.php?id=${id}`);
+                const result = await res.json();
+                if (result.success) loadTreasuryData();
+                else alert('Erreur: ' + result.message);
+            } catch (e) { console.error(e); }
+        }
+        
+        function updateCharts(data) {
+            // Chart 1: Revenus vs Dépenses
+            if (charts.revenusDepenses) charts.revenusDepenses.destroy();
+            const r = (stats.revenus_cdf || 0) / 1000;
+            const a = (stats.achats_cdf || 0) / 1000;
+            const d = (stats.depenses_cdf || 0) / 1000;
+            const b = r - a - d;
+            
+            charts.revenusDepenses = new Chart(document.getElementById('chart-revenus-depenses'), {
+                type: 'bar',
+                data: {
+                    labels: ['Revenus', 'Achats', 'Dépenses', 'Bénéfice'],
+                    datasets: [{ data: [r, a, d, b], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', b >= 0 ? '#059669' : '#ef4444'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+            
+            // Chart 2: Catégories
+            if (charts.categories) charts.categories.destroy();
+            const cats = data.categories_depenses || [];
+            charts.categories = new Chart(document.getElementById('chart-categories'), {
+                type: 'doughnut',
+                data: {
+                    labels: cats.length ? cats.map(c => categoryLabels[c.categorie] || c.categorie) : ['Aucune'],
+                    datasets: [{ data: cats.length ? cats.map(c => c.montant_cdf) : [1], backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            
+            // Chart 3: Évolution
+            if (charts.evolution) charts.evolution.destroy();
+            const flux = data.flux_tresorerie || [];
+            charts.evolution = new Chart(document.getElementById('chart-evolution'), {
+                type: 'line',
+                data: {
+                    labels: flux.length ? flux.map(f => formatDate(f.date)) : ['Aucune'],
+                    datasets: [{ label: 'Revenus', data: flux.map(f => f.revenus_cdf || 0), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+        
+        function exportData() {
+            let csv = 'Type;Date;Description;Montant;Devise\n';
+            achats.forEach(a => csv += `Achat;${formatDate(a.date)};${a.fournisseur};${a.montant};${a.devise}\n`);
+            depenses.forEach(d => csv += `Dépense;${formatDate(d.date)};${d.description};${d.montant};${d.devise}\n`);
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'tresorerie_' + new Date().toISOString().split('T')[0] + '.csv';
+            link.click();
+        }
+        
+        // ===== INIT =====
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserInfo();
+            loadTreasuryData();
+            
+            // Logout button
+            document.getElementById('btn-logout').addEventListener('click', (e) => {
+                e.preventDefault();
+                logout();
+            });
+            
+            // Tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+                });
+            });
+            
+            // Search
+            document.getElementById('search-achats').addEventListener('input', e => renderAchats(e.target.value));
+            document.getElementById('search-depenses').addEventListener('input', e => renderDepenses(e.target.value));
+            
+            // Période
+            document.querySelectorAll('.periode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.periode-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+        });
+    </script>
 </body>
 </html>

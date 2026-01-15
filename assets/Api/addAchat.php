@@ -72,9 +72,26 @@ $id_magasin = isset($_SESSION['id_magasin']) ? intval($_SESSION['id_magasin']) :
 // --- TRAITEMENT BD ---
 
 try {
-    // Insérer l'achat dans stock_entrees
-    $insertSQL = "INSERT INTO stock_entrees (id_magasin, id_session, fournisseur, numero_facture, montant_total, devise, description, statut, date_entree, categorie_achat)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    // Vérifier/Créer les colonnes nécessaires dans mouvements_tresorerie
+    $col_check = $conn->query("SHOW COLUMNS FROM mouvements_tresorerie LIKE 'fournisseur'");
+    if ($col_check && $col_check->num_rows == 0) {
+        $conn->query("ALTER TABLE mouvements_tresorerie ADD COLUMN fournisseur VARCHAR(100) DEFAULT NULL AFTER categorie");
+    }
+    
+    $col_check = $conn->query("SHOW COLUMNS FROM mouvements_tresorerie LIKE 'numero_facture'");
+    if ($col_check && $col_check->num_rows == 0) {
+        $conn->query("ALTER TABLE mouvements_tresorerie ADD COLUMN numero_facture VARCHAR(50) DEFAULT NULL AFTER fournisseur");
+    }
+    
+    $col_check = $conn->query("SHOW COLUMNS FROM mouvements_tresorerie LIKE 'statut'");
+    if ($col_check && $col_check->num_rows == 0) {
+        $conn->query("ALTER TABLE mouvements_tresorerie ADD COLUMN statut VARCHAR(30) DEFAULT 'payee' AFTER numero_facture");
+    }
+    
+    // Insérer l'achat dans mouvements_tresorerie
+    $insertSQL = "INSERT INTO mouvements_tresorerie 
+                  (id_magasin, user_id, type_mouvement, montant, devise, description, categorie, fournisseur, numero_facture, statut, reference, date_mouvement)
+                  VALUES (?, ?, 'achat', ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($insertSQL);
     
@@ -86,33 +103,37 @@ try {
     $description = !empty($notes) ? $notes : '';
     
     // Formater la date
-    $date_entree = !empty($purchase_date) ? $purchase_date . ' ' . date('H:i:s') : date('Y-m-d H:i:s');
+    $date_mouvement = !empty($purchase_date) ? $purchase_date . ' ' . date('H:i:s') : date('Y-m-d H:i:s');
     
-    $stmt->bind_param("iissdsssss", 
+    // Référence = numéro facture
+    $reference = $invoice_no;
+    
+    $stmt->bind_param("iidssssssss", 
         $id_magasin,
         $id_session, 
-        $fournisseur, 
-        $invoice_no, 
         $montant_total, 
         $devise, 
         $description, 
-        $statut, 
-        $date_entree,
-        $category
+        $category,
+        $fournisseur,
+        $invoice_no,
+        $statut,
+        $reference,
+        $date_mouvement
     );
     
     if (!$stmt->execute()) {
         throw new Exception('Erreur d\'exécution: ' . $stmt->error);
     }
     
-    $id_entree = $conn->insert_id;
+    $id_mouvement = $conn->insert_id;
     $stmt->close();
     
     // Retourner le succès
     echo json_encode([
         'success' => true,
         'message' => 'Achat enregistré avec succès',
-        'id' => $id_entree
+        'id' => $id_mouvement
     ]);
 
 } catch (Exception $e) {
